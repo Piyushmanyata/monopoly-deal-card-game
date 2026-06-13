@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Clipboard, Copy, Database, HelpCircle, Key, RefreshCw, Terminal } from "lucide-react";
+import { Check, Copy, Database, HelpCircle, Key, RefreshCw, Terminal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";

@@ -6,12 +6,32 @@ import { RoomGameClient } from "./room-game-client";
 import { type RedactedState } from "@/lib/engine";
 import { getMyView } from "@/app/actions/rooms";
 
+type Player = {
+  id: string;
+  display_name: string;
+  avatar: string;
+  seat_index: number;
+  is_bot: boolean;
+  connected: boolean;
+};
+
+type Room = {
+  id: string;
+  code: string;
+  status: string;
+  host_player: string;
+  config: {
+    maxPlayers?: number;
+    botCount?: number;
+  };
+};
+
 type RoomClientWrapperProps = {
   roomId: string;
   playerId: string;
   roomCode: string;
-  initialPlayers: any[];
-  roomInfo: any;
+  initialPlayers: Player[];
+  roomInfo: Room;
   isHost: boolean;
   initialGameView: RedactedState | null;
 };

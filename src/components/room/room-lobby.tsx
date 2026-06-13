@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, startTransition } from "react";
-import { Bot, Check, Copy, Loader2, Play, Users, LogOut, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Bot, Check, Copy, Loader2, Play, Users, Trash2 } from "lucide-react";
 import { addBotAction, removePlayerAction, startRoomGame as startRoomGameAction } from "@/app/actions/rooms";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";

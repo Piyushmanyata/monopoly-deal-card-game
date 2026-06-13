@@ -76,7 +76,7 @@ export default async function RoomPage({ params, searchParams }: RoomPageProps) 
     );
   }
 
-  const { data: players, error: playersError } = await supabase
+  const { data: players } = await supabase
     .from("players")
     .select("id, display_name, avatar, seat_index, is_bot, connected")
     .eq("room_id", roomId)

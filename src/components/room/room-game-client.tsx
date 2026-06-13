@@ -11,7 +11,6 @@ import {
   Hand,
   Info,
   Play,
-  RefreshCw,
   Shield,
   Sparkles,
   Volume2,
@@ -19,7 +18,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import { chooseBotMove } from "@/lib/bot";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
@@ -34,6 +32,7 @@ import {
   type GameEvent,
   type GameState,
   type Move,
+  type PlayerState,
   type RedactedPlayerState,
   type RedactedState,
   type PropertyColor,
@@ -84,10 +83,6 @@ function eventToSfx(event: GameEvent): "draw" | "place" | "money" | "steal" | "n
   return "place";
 }
 
-function getBankTotal(player: RedactedPlayerState): number {
-  return player.bankTotal;
-}
-
 function redactedPlayerNetWorth(player: RedactedPlayerState): number {
   return player.bankTotal + player.properties.reduce((sum, entry) => sum + entry.card.value, 0) + player.buildings.reduce((sum, entry) => sum + entry.card.value, 0);
 }
@@ -95,8 +90,8 @@ function redactedPlayerNetWorth(player: RedactedPlayerState): number {
 function getGroupedProperties(player: RedactedPlayerState): { color: PropertyColor; cards: TableauCard[]; rent: number; complete: boolean }[] {
   return PROPERTY_COLORS.map((color) => ({
     color,
-    cards: propertyCardsFor(player as any, color),
-    rent: rentForColor(player as any, color),
+    cards: propertyCardsFor(player as unknown as PlayerState, color),
+    rent: rentForColor(player as unknown as PlayerState, color),
     complete: player.completeSets.includes(color),
   })).filter((group) => group.cards.length > 0);
 }
@@ -310,7 +305,7 @@ export function RoomGameClient({
         } else {
           setMessage(result.message);
         }
-      } catch (error) {
+      } catch {
         setMessage("Connection failed");
       }
     },
@@ -370,7 +365,7 @@ export function RoomGameClient({
       }, 750);
       return () => window.clearTimeout(timer);
     }
-  }, [state?.currentPlayerId, drawMove, winner, playerId, commitMove]);
+  }, [state, drawMove, winner, playerId, commitMove]);
 
   // Host Bot controller
   useEffect(() => {
@@ -648,7 +643,7 @@ export function RoomGameClient({
             <div className="flex gap-2">
               <Button
                 variant="outline"
-                onClick={() => pendingPayment && setSelectedPaymentIds(chooseAutoPayment(human as any, pendingPayment.debt.amount))}
+                onClick={() => pendingPayment && setSelectedPaymentIds(chooseAutoPayment(human as unknown as PlayerState, pendingPayment.debt.amount))}
               >
                 Auto-pay
               </Button>
@@ -702,7 +697,7 @@ export function RoomGameClient({
                 <div key={color} className="rounded-lg border border-white/10 bg-white/[0.04] p-3">
                   <span className="mb-2 block h-2 rounded-full" style={{ backgroundColor: propertyColorStyle(color) }} />
                   <p className="text-sm font-bold">{colorName(color)}</p>
-                  <p className="font-mono text-xs text-zinc-400">Rent ${rentForColor(winner as any, color)}M</p>
+                  <p className="font-mono text-xs text-zinc-400">Rent ${rentForColor(winner as unknown as PlayerState, color)}M</p>
                 </div>
               ))}
             </div>
