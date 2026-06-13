@@ -400,6 +400,30 @@ export function RoomGameClient({
     return state.players.find((p) => p.id === id)?.name ?? id;
   };
 
+  const moveLabel = (move: Move): string => {
+    if (move.type === "play_to_bank") return "Bank for money";
+    if (move.type === "play_property") return `Play to ${colorName(move.assignedColor)}`;
+    if (move.type === "reassign_wild") return `Reassign to ${colorName(move.assignedColor)}`;
+    if (move.type === "play_pass_go") return "Draw 2 now";
+    if (move.type === "play_house") return `Build House on ${colorName(move.color)}`;
+    if (move.type === "play_hotel") return `Build Hotel on ${colorName(move.color)}`;
+    if (move.type === "play_rent") {
+      const target = move.targetId ? ` from ${playerName(move.targetId)}` : " from everyone";
+      return `${move.doubleRentCardId ? "Double " : ""}${colorName(move.color)} rent${target}`;
+    }
+    if (move.type === "play_debt_collector") return `Collect $5M from ${playerName(move.targetId)}`;
+    if (move.type === "play_birthday") return "Collect $2M from everyone";
+    if (move.type === "play_sly_deal") return `Take property from ${playerName(move.targetId)}`;
+    if (move.type === "play_forced_deal") return `Swap with ${playerName(move.targetId)}`;
+    if (move.type === "play_deal_breaker") return `Sweep ${playerName(move.targetId)}'s ${colorName(move.color)} set`;
+    if (move.type === "end_turn") return "End turn";
+    if (move.type === "draw") return "Draw";
+    if (move.type === "discard") return "Discard selected";
+    if (move.type === "respond_jsn") return move.useCardId ? "Block with Hard No" : "Allow";
+    if (move.type === "pay") return "Pay";
+    return "Play";
+  };
+
   const pendingPayment = state.pendingInteraction?.kind === "payment" && state.pendingInteraction.debt.debtorId === human.id
     ? state.pendingInteraction
     : undefined;
@@ -587,7 +611,7 @@ export function RoomGameClient({
                     <div className="grid gap-2">
                       {selectedMoves.map((move, index) => (
                         <Button key={`${move.type}-${index}`} variant="secondary" className="justify-start" onClick={() => commitMove(move)}>
-                          Play
+                          {moveLabel(move)}
                         </Button>
                       ))}
                       {selectedMoves.length === 0 && (
@@ -673,7 +697,7 @@ export function RoomGameClient({
                   onClick={() => commitMove(move)}
                 >
                   {move.type === "respond_jsn" && move.useCardId ? <Shield className="h-4 w-4" /> : <Check className="h-4 w-4" />}
-                  Play
+                  {moveLabel(move)}
                 </Button>
               ))}
           </div>
