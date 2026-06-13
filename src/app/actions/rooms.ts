@@ -186,6 +186,20 @@ export async function startRoomGame(roomId: string): Promise<{ ok: true; view: R
     return { ok: false, message: playersError?.message ?? "A game needs at least 2 players" };
   }
 
+  // Check if game already exists (defensive check against double clicks)
+  const { data: existingGame } = await supabase
+    .from("games")
+    .select("id")
+    .eq("room_id", roomId)
+    .maybeSingle();
+
+  if (existingGame) {
+    const view = await getMyView(roomId, players[0].id);
+    if (view) {
+      return { ok: true, view };
+    }
+  }
+
   const publicPlayers: PublicPlayer[] = (players as PlayerRow[]).map((player) => ({
     id: player.id,
     name: player.display_name,
