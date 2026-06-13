@@ -8,7 +8,6 @@ import {
   ClipboardList,
   Crown,
   DoorOpen,
-  Hand,
   Info,
   Play,
   RefreshCw,
@@ -28,7 +27,6 @@ import { chooseBotMove, type BotDifficulty } from "@/lib/bot";
 import {
   PROPERTY_COLORS,
   applyMove,
-  assignableColors,
   bankTotal,
   chooseAutoPayment,
   completeSetColors,
@@ -176,36 +174,45 @@ function SetColumn({ group, small }: { group: ReturnType<typeof groupedPropertie
   return (
     <div
       className={cn(
-        "min-w-28 rounded-xl border p-2.5 transition-all duration-300 relative bg-zinc-950/70",
+        "rounded-xl border p-2 transition-all duration-300 relative bg-zinc-950/70 flex flex-col justify-between",
         group.complete
-          ? "border-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.15)] bg-gradient-to-b from-zinc-950/70 to-amber-950/10"
+          ? "border-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.12)] bg-gradient-to-b from-zinc-950/70 to-amber-950/10"
           : "border-white/5 hover:border-white/10",
-        small && "min-w-24 p-2"
+        small ? "min-w-[5.5rem] p-1.5" : "min-w-[7rem] p-2.5"
       )}
     >
       {group.complete && (
-        <span className="absolute -top-2 -right-2 grid h-5 w-5 place-items-center rounded-full bg-amber-400 text-amber-950 text-[10px] font-black shadow-lg">
+        <span className={cn(
+          "absolute grid place-items-center rounded-full bg-amber-400 text-amber-950 font-black shadow-lg z-10",
+          small ? "-top-1.5 -right-1.5 h-4 w-4 text-[8px]" : "-top-2 -right-2 h-5 w-5 text-[10px]"
+        )}>
           ★
         </span>
       )}
-      <div className="mb-1.5 flex items-center justify-between gap-1">
-        <span className="flex items-center gap-1 text-[10px] sm:text-[11px] font-black uppercase text-zinc-300">
-          <span className="h-2.5 w-2.5 rounded-full shadow-inner" style={{ backgroundColor: propertyColorStyle(group.color) }} />
-          {small ? colorName(group.color).slice(0, 5) + "." : colorName(group.color)}
-        </span>
-        <Badge variant={group.complete ? "default" : "secondary"} className={cn("h-4.5 px-1.5 text-[9px] font-mono", group.complete && "bg-amber-400 text-amber-950")}>
-          {group.cards.length}/{maxNeeded}
-        </Badge>
+      <div>
+        <div className="mb-1 flex items-center justify-between gap-1">
+          <span className={cn(
+            "flex items-center gap-1 font-black uppercase text-zinc-300",
+            small ? "text-[8.5px]" : "text-[10px]"
+          )}>
+            <span className={cn("rounded-full shadow-inner", small ? "h-2 w-2" : "h-2.5 w-2.5")} style={{ backgroundColor: propertyColorStyle(group.color) }} />
+            {small ? colorName(group.color).slice(0, 4) + "." : colorName(group.color)}
+          </span>
+          <Badge variant={group.complete ? "default" : "secondary"} className={cn("px-1 py-0 font-mono leading-none border border-white/5", small ? "text-[8px] h-3.5" : "text-[9px] h-4.5", group.complete && "bg-amber-400 text-amber-950")}>
+            {group.cards.length}
+          </Badge>
+        </div>
+        <Progress value={progress} className={cn("h-1 bg-zinc-900", group.complete ? "bg-amber-400/20" : "")} />
       </div>
-      <Progress value={progress} className={cn("h-1 bg-zinc-900", group.complete ? "bg-amber-400/20" : "")} />
-      <div className="mt-2.5 flex -space-x-8 overflow-visible py-1">
+      
+      <div className={cn("mt-2 flex overflow-visible py-0.5", small ? "-space-x-4.5" : "-space-x-6.5")}>
         {group.cards.map((entry, idx) => (
-          <div key={entry.card.id} style={{ zIndex: idx, transform: `rotate(${(idx - (group.cards.length - 1) / 2) * 2}deg)` }}>
-            <CardView card={entry.card} compact className={small ? "h-16 w-11" : "h-20 w-14"} />
+          <div key={entry.card.id} style={{ zIndex: idx, transform: `rotate(${(idx - (group.cards.length - 1) / 2) * 1.5}deg)` }}>
+            <CardView card={entry.card} size={small ? "sm" : "md"} />
           </div>
         ))}
       </div>
-      <p className="mt-2 font-mono text-[10px] font-bold text-emerald-400">Rent ${group.rent}M</p>
+      <p className={cn("mt-1.5 font-mono font-bold text-emerald-400 leading-none", small ? "text-[8.5px]" : "text-[10px]")}>Rent ${group.rent}M</p>
     </div>
   );
 }
@@ -218,7 +225,7 @@ function PlayerPanel({ player, active, self }: { player: PlayerState; active: bo
       className={cn(
         "rounded-xl border p-3.5 shadow-xl transition-all duration-300 relative",
         active
-          ? "border-emerald-400/80 bg-zinc-900/50 shadow-emerald-500/10"
+          ? "border-emerald-400/80 bg-zinc-900/40 shadow-emerald-500/5"
           : "border-white/5 bg-zinc-950/20",
         self && "bg-emerald-950/5 border-emerald-950/20",
       )}
@@ -252,16 +259,19 @@ function PlayerPanel({ player, active, self }: { player: PlayerState; active: bo
         )}
       </div>
 
-      {/* Tableau cards rendering */}
-      <div className="mt-3 flex gap-2 overflow-x-auto pb-1.5 scrollbar-thin">
+      {/* Tableau cards rendering (wrapping layout, no horizontal scrollbars!) */}
+      <div className="mt-3 flex flex-wrap gap-2 justify-start items-stretch">
         {/* Bank card views */}
         {player.bank.length > 0 && (
-          <div className="min-w-20 rounded-xl border border-white/5 bg-zinc-950/80 p-2 text-center flex flex-col justify-between">
+          <div className={cn(
+            "rounded-xl border border-white/5 bg-zinc-950/80 p-2 text-center flex flex-col justify-between",
+            self ? "min-w-[5rem]" : "min-w-[4.2rem]"
+          )}>
             <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">Vault</span>
             <div className="my-1.5 flex justify-center -space-x-5 overflow-visible">
               {player.bank.slice(0, 4).map((card, idx) => (
                 <div key={card.id} style={{ zIndex: idx, transform: `rotate(${(idx - 1.5) * 4}deg)` }}>
-                  <CardView card={card} compact className="h-12 w-8 shadow" />
+                  <CardView card={card} size={self ? "md" : "sm"} className="shadow" />
                 </div>
               ))}
             </div>
@@ -405,7 +415,6 @@ export function GameClient() {
     if (saved) {
       try {
         const loadedState = deserialize(saved);
-        // Verify names/avatars match the search query if loaded from previous session
         const humanPlayer = loadedState.players.find((p) => p.id === "human");
         if (humanPlayer) {
           humanPlayer.name = pName;
@@ -534,8 +543,8 @@ export function GameClient() {
   };
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[radial-gradient(ellipse_at_50%_0%,rgba(16,185,129,0.22)_0%,rgba(6,25,18,0.95)_70%),linear-gradient(to_bottom,#020704,#090e0c_50%,#11090f)] text-zinc-50 flex flex-col">
-      <div className="mx-auto flex w-full max-w-[1700px] flex-col gap-4 p-3 sm:p-5 flex-1 justify-between">
+    <main className="min-h-screen overflow-x-hidden bg-[radial-gradient(ellipse_at_50%_0%,rgba(16,185,129,0.22)_0%,rgba(6,25,18,0.95)_70%),linear-gradient(to_bottom,#020704,#090e0c_50%,#11090f)] text-zinc-50 flex flex-col justify-between">
+      <div className="mx-auto flex w-full max-w-[1700px] flex-col gap-4 p-3 sm:p-5 flex-1">
         
         {/* POLISHED TABLEHEADER */}
         <header className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/5 bg-black/40 px-4 py-3 backdrop-blur-xl shadow-lg">
@@ -615,75 +624,117 @@ export function GameClient() {
               
               {/* Bot thinking status bubble */}
               {activeBotMessage && (
-                <div className="absolute top-4 left-1/2 -translate-x-1/2 rounded-full border border-emerald-400/20 bg-emerald-950/70 px-4 py-1.5 text-xs text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.2)] animate-pulse flex items-center gap-1.5">
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 rounded-full border border-emerald-400/20 bg-emerald-950/70 px-4 py-1.5 text-xs text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.2)] animate-pulse flex items-center gap-1.5 z-20">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping" />
                   {activeBotMessage}
                 </div>
               )}
 
-              {/* CENTER DECKS */}
-              <div className="grid grid-cols-3 items-center gap-6 max-w-lg w-full z-10">
-                {/* DRAW PILE */}
-                <div className="text-center flex flex-col items-center">
-                  <div className="relative group">
-                    <div className="absolute inset-0 bg-emerald-500/10 rounded-xl blur-md group-hover:bg-emerald-500/25 transition duration-300" />
-                    <CardView faceDown compact className="mx-auto h-28 w-20 border-2 border-emerald-500/20 relative shadow-2xl" />
-                    <span className="absolute -bottom-1 -right-1 grid h-5 w-7 place-items-center rounded bg-zinc-950 border border-white/10 text-[10px] font-black font-mono">
-                      {state.deck.length}
-                    </span>
+              {/* CENTER DECKS AND FLOAT BAR CONTROLS */}
+              <div className="flex flex-col items-center justify-center gap-6 z-10">
+                <div className="flex items-center gap-10 justify-center">
+                  {/* DRAW PILE */}
+                  <div className="text-center flex flex-col items-center">
+                    <div className="relative group">
+                      <div className="absolute inset-0 bg-emerald-500/10 rounded-xl blur-md group-hover:bg-emerald-500/20 transition duration-300" />
+                      <CardView faceDown size="md" className="border border-emerald-500/20 relative shadow-2xl" />
+                      <span className="absolute -bottom-1 -right-1 grid h-5 w-7 place-items-center rounded bg-zinc-950 border border-white/10 text-[10px] font-black font-mono">
+                        {state.deck.length}
+                      </span>
+                    </div>
+                    <p className="mt-2 text-[9px] uppercase font-black text-zinc-400 tracking-wider">Draw Deck</p>
                   </div>
-                  <p className="mt-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Draw Pile</p>
+
+                  {/* DISCARD PILE */}
+                  <div className="text-center flex flex-col items-center">
+                    <div className="relative">
+                      {state.discard.at(-1) ? (
+                        <>
+                          <CardView card={state.discard.at(-1)} size="md" className="shadow-2xl relative" />
+                          <span className="absolute -bottom-1 -right-1 grid h-5 w-7 place-items-center rounded bg-zinc-950 border border-white/10 text-[10px] font-black font-mono">
+                            {state.discard.length}
+                          </span>
+                        </>
+                      ) : (
+                        <div className="grid h-32 w-23 place-items-center rounded-lg border-2 border-dashed border-white/10 text-[10px] font-black uppercase text-zinc-600 bg-black/20">
+                          Empty
+                        </div>
+                      )}
+                    </div>
+                    <p className="mt-2 text-[9px] uppercase font-black text-zinc-400 tracking-wider">Discard</p>
+                  </div>
                 </div>
 
-                {/* GAME CONTROL BUTTONS */}
-                <div className="flex flex-col items-center gap-2.5">
+                {/* Floating Turn Action Controls */}
+                <div className="flex gap-2.5 bg-black/55 border border-white/10 p-2 rounded-xl shadow-2xl backdrop-blur-xl">
                   {drawMove && (
-                    <Button size="lg" onClick={() => commitMove(drawMove)} className="w-full bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-black gap-2 shadow-[0_0_15px_rgba(16,185,129,0.35)] cursor-pointer">
+                    <Button size="default" onClick={() => commitMove(drawMove)} className="bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-black gap-2 shadow-[0_0_15px_rgba(16,185,129,0.35)] cursor-pointer h-9 px-4 text-xs">
                       <Play className="h-4 w-4 fill-current" />
                       Draw Cards
                     </Button>
                   )}
                   
                   {endTurnMove && (
-                    <Button variant="secondary" size="default" onClick={() => commitMove(endTurnMove)} className="w-full border border-white/5 bg-zinc-900/80 hover:bg-zinc-800 text-zinc-100 font-bold gap-1.5 cursor-pointer">
+                    <Button variant="secondary" size="default" onClick={() => commitMove(endTurnMove)} className="border border-white/5 bg-zinc-900/80 hover:bg-zinc-800 text-zinc-100 font-black gap-1.5 cursor-pointer h-9 px-4 text-xs">
                       <Check className="h-4 w-4 text-emerald-400" />
                       End Turn
                     </Button>
                   )}
                   
                   {discardMove && (
-                    <Button variant="destructive" size="sm" onClick={() => commitMove(discardMove)} className="w-full font-bold gap-1.5 cursor-pointer">
-                      <ClipboardList className="h-3.5 w-3.5" />
-                      Discard down
+                    <Button variant="destructive" size="default" onClick={() => commitMove(discardMove)} className="font-black gap-1.5 cursor-pointer h-9 px-4 text-xs">
+                      <ClipboardList className="h-4 w-4" />
+                      Auto Discard
                     </Button>
                   )}
 
                   {!drawMove && !endTurnMove && !discardMove && (
-                    <div className="rounded-full border border-white/5 bg-black/40 px-3 py-1.5 text-center text-[10px] font-bold text-zinc-400 tracking-wider uppercase">
-                      {state.pendingInteraction ? "Awaiting input" : "Bot turn active"}
+                    <div className="px-4 py-2 text-[10px] font-black text-zinc-400 tracking-wider uppercase">
+                      {state.pendingInteraction ? "Awaiting Response" : "Opponents Playing..."}
                     </div>
                   )}
                 </div>
-
-                {/* DISCARD PILE */}
-                <div className="text-center flex flex-col items-center">
-                  <div className="relative">
-                    {state.discard.at(-1) ? (
-                      <>
-                        <CardView card={state.discard.at(-1)} compact className="mx-auto h-28 w-20 shadow-2xl relative" />
-                        <span className="absolute -bottom-1 -right-1 grid h-5 w-7 place-items-center rounded bg-zinc-950 border border-white/10 text-[10px] font-black font-mono">
-                          {state.discard.length}
-                        </span>
-                      </>
-                    ) : (
-                      <div className="mx-auto grid h-28 w-20 place-items-center rounded-lg border-2 border-dashed border-white/10 text-[10px] font-black uppercase text-zinc-600 bg-black/20">
-                        Empty
-                      </div>
-                    )}
-                  </div>
-                  <p className="mt-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Discard</p>
-                </div>
               </div>
+
+              {/* PENDING INTERACTION FLOATING OVERLAY */}
+              <AnimatePresence>
+                {state.pendingInteraction && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="absolute inset-0 z-30 bg-black/70 backdrop-blur-xs flex flex-col items-center justify-center p-4"
+                  >
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9, y: 15 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.9, y: 15 }}
+                      className="bg-zinc-950/95 border border-emerald-500/20 p-5 rounded-2xl max-w-xs w-full text-center flex flex-col items-center shadow-[0_0_50px_rgba(16,185,129,0.25)]"
+                    >
+                      <Badge className="bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 mb-2.5 uppercase text-[9px] tracking-wider font-extrabold px-2 py-0.5">
+                        Active Action card
+                      </Badge>
+                      
+                      {state.discard.at(-1) && (
+                        <div className="my-1">
+                          <CardView card={state.discard.at(-1)} size="md" className="shadow-[0_15px_30px_rgba(0,0,0,0.6)] border-amber-400/15" />
+                        </div>
+                      )}
+                      
+                      <h3 className="text-xs font-black text-zinc-100 mt-2 leading-snug">
+                        {state.pendingInteraction.kind === "payment"
+                          ? `Pay $${state.pendingInteraction.debt.amount}M rent to ${playerName(state, state.pendingInteraction.debt.creditorId)}`
+                          : `${playerName(state, state.pendingInteraction.effect.actorId)} targeted you`}
+                      </h3>
+                      <p className="text-[10px] text-zinc-400 mt-1 max-w-[200px] leading-relaxed">
+                        {state.pendingInteraction.kind === "payment"
+                          ? "Select vault cash or properties below to pay."
+                          : "Counter with a Just Say No card or allow it."}
+                      </p>
+                    </motion.div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </section>
 
             {/* ACTION LOG FEED */}
@@ -714,96 +765,90 @@ export function GameClient() {
             </aside>
           </div>
 
-          {/* BOTTOM ROW: USER HAND / CONTROL */}
+          {/* BOTTOM ROW: USER HAND */}
           <section className="rounded-2xl border border-white/5 bg-black/20 p-4 shadow-2xl mt-2 backdrop-blur-xl">
             <PlayerPanel player={human} active={current.id === human.id} self />
             <Separator className="my-3.5 bg-white/5" />
             
-            <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
-              {/* Hand view */}
-              <div className="overflow-x-auto pb-2 scrollbar-thin">
-                <div className="flex min-h-48 items-end gap-2 px-1">
-                  <AnimatePresence initial={false}>
-                    {human.hand.map((card, index) => {
-                      const offset = index - (human.hand.length - 1) / 2;
-                      const rot = offset * 1.5;
-                      return (
-                        <motion.div
-                          key={card.id}
-                          initial={{ opacity: 0, y: 30, rotate: 5 }}
-                          animate={{ opacity: 1, y: 0, rotate: rot }}
-                          exit={{ opacity: 0, y: 30 }}
-                          transition={{ duration: 0.2 }}
-                        >
-                          <CardView
-                            card={card}
-                            selected={selectedCardId === card.id}
-                            disabled={current.id !== human.id && state.pendingInteraction?.kind !== "just_say_no"}
-                            onClick={() => setSelectedCardId(card.id)}
-                          />
-                        </motion.div>
-                      );
-                    })}
-                  </AnimatePresence>
-                  
-                  {human.hand.length === 0 && (
-                    <div className="grid h-36 w-full place-items-center rounded-xl border border-dashed border-white/10 text-xs font-semibold text-zinc-500 bg-black/10">
-                      Your hand is empty. Drawing cards automatically...
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* CARD INSPECTOR PANEL */}
-              <div className="rounded-xl border border-white/5 bg-zinc-950/70 p-3.5 flex flex-col justify-between relative overflow-hidden">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_right,rgba(16,185,129,0.02),transparent_40%)]" />
-                <div>
-                  <div className="mb-2.5 flex items-center gap-1.5 border-b border-white/5 pb-2">
-                    <Hand className="h-4 w-4 text-emerald-400" />
-                    <h2 className="text-xs font-black uppercase tracking-wider text-zinc-300">Selected Card</h2>
-                  </div>
-                  
-                  {selectedCard ? (
-                    <div className="space-y-3 relative z-10">
-                      <div className="flex justify-between items-start gap-2">
-                        <div>
-                          <p className="text-sm font-black text-zinc-100">{selectedCard.name}</p>
-                          <p className="text-[10px] text-zinc-400 mt-0.5">
-                            Value ${selectedCard.value}M · {assignableColors(selectedCard).map(colorName).join(" / ") || "Action Card"}
-                          </p>
-                        </div>
-                        <button onClick={() => setSelectedCardId(undefined)} className="p-1 hover:bg-white/5 rounded text-zinc-400 hover:text-zinc-200">
-                          <X className="h-4 w-4" />
-                        </button>
-                      </div>
-
-                      <div className="grid gap-1.5 max-h-40 overflow-y-auto">
-                        {selectedMoves.map((move, index) => (
-                          <Button key={`${move.type}-${index}`} variant="secondary" className="justify-start font-bold text-xs h-9 cursor-pointer" onClick={() => commitMove(move)}>
-                            {moveLabel(state, move)}
-                          </Button>
-                        ))}
-                        {selectedMoves.length === 0 && (
-                          <p className="rounded-lg border border-dashed border-white/5 p-3 text-[10px] text-zinc-500 bg-black/20">
-                            No legal plays available for this card in the current phase.
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="rounded-lg border border-dashed border-white/5 p-4 text-xs text-zinc-500 bg-black/10 text-center leading-relaxed">
-                      Select any card in your hand to review options and play.
-                    </p>
-                  )}
-                </div>
+            {/* Hand view */}
+            <div className="overflow-x-auto pb-2 scrollbar-thin">
+              <div className="flex min-h-48 items-end gap-2 px-1 justify-center">
+                <AnimatePresence initial={false}>
+                  {human.hand.map((card, index) => {
+                    const offset = index - (human.hand.length - 1) / 2;
+                    const rot = offset * 1.5;
+                    return (
+                      <motion.div
+                        key={card.id}
+                        initial={{ opacity: 0, y: 30, rotate: 5 }}
+                        animate={{ opacity: 1, y: 0, rotate: rot }}
+                        exit={{ opacity: 0, y: 30 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <CardView
+                          card={card}
+                          selected={selectedCardId === card.id}
+                          disabled={current.id !== human.id && state.pendingInteraction?.kind !== "just_say_no"}
+                          onClick={() => setSelectedCardId(card.id)}
+                        />
+                      </motion.div>
+                    );
+                  })}
+                </AnimatePresence>
                 
-                {selectedCard && (
-                  <div className="mt-3 text-[9px] text-zinc-500 font-medium">
-                    * Tap play option to execute immediately. Cards placed in Vault are permanent bank assets.
+                {human.hand.length === 0 && (
+                  <div className="grid h-36 w-full place-items-center rounded-xl border border-dashed border-white/10 text-xs font-semibold text-zinc-500 bg-black/10">
+                    Your hand is empty. Drawing cards automatically...
                   </div>
                 )}
               </div>
             </div>
+
+            {/* FLOATING CARD INSPECTOR PANEL (overlaps bottom center when card is selected) */}
+            <AnimatePresence>
+              {selectedCard && (
+                <motion.div
+                  initial={{ opacity: 0, y: 40 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 40 }}
+                  className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-zinc-950/95 border border-emerald-500/25 p-4 rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.85)] max-w-sm w-[calc(100%-2.5rem)] flex gap-4 items-center backdrop-blur-xl"
+                >
+                  <div className="shrink-0">
+                    <CardView card={selectedCard} size="md" />
+                  </div>
+                  <div className="flex-1 flex flex-col justify-between h-full min-w-0">
+                    <div>
+                      <div className="flex justify-between items-start gap-1">
+                        <h3 className="font-black text-sm text-zinc-100 truncate">{selectedCard.name}</h3>
+                        <button onClick={() => setSelectedCardId(undefined)} className="p-1 hover:bg-white/5 rounded text-zinc-400 hover:text-zinc-200 shrink-0 cursor-pointer">
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                      <p className="text-[10px] text-zinc-400 mt-1 line-clamp-2 leading-relaxed">
+                        {selectedCard.kind === "money"
+                          ? "Vault currency. Bank it to protect property sets from rent collections."
+                          : selectedCard.kind === "property"
+                          ? "Place on board. Form completed color groups to win."
+                          : "Launches dynamic events. Charge rent, block attacks, or steal properties."}
+                      </p>
+                    </div>
+                    
+                    <div className="grid gap-1.5 mt-3">
+                      {selectedMoves.map((move, index) => (
+                        <Button key={`${move.type}-${index}`} size="sm" className="w-full text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer h-8" onClick={() => commitMove(move)}>
+                          {moveLabel(state, move)}
+                        </Button>
+                      ))}
+                      {selectedMoves.length === 0 && (
+                        <p className="text-[9px] text-zinc-500 italic bg-black/25 p-1.5 rounded text-center">
+                          No actions available in this turn phase.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </section>
         </section>
       </div>
@@ -852,14 +897,14 @@ export function GameClient() {
 
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/5 bg-black/40 p-3 mt-1.5">
             <div>
-              <p className="text-xs font-bold text-zinc-200">Paying: ${selectedPaymentTotal}M / ${pendingPayment?.debt.amount ?? 0}M</p>
-              <p className="text-[9px] text-zinc-500 mt-0.5">Pay full debt, or all properties/bank if insolvent.</p>
+              <p className="text-xs font-bold text-zinc-200 font-mono">Paying: ${selectedPaymentTotal}M / ${pendingPayment?.debt.amount ?? 0}M</p>
+              <p className="text-[9px] text-zinc-500 mt-0.5 font-medium">Select assets from your tableau and vault.</p>
             </div>
             <div className="flex gap-2">
               <Button
                 variant="outline"
                 size="sm"
-                className="cursor-pointer text-xs"
+                className="cursor-pointer text-xs font-semibold"
                 onClick={() => pendingPayment && setSelectedPaymentIds(chooseAutoPayment(human, pendingPayment.debt.amount))}
               >
                 Auto-Select
@@ -912,7 +957,7 @@ export function GameClient() {
         <DialogContent className="border-amber-400/20 bg-zinc-950 text-zinc-50 sm:max-w-md shadow-2xl backdrop-blur-2xl text-center">
           <DialogHeader className="items-center">
             <div className="h-14 w-14 rounded-full bg-amber-500/10 border border-amber-500/30 grid place-items-center mb-2">
-              <Sparkles className="h-7 w-7 text-amber-300 animate-spin-slow" />
+              <Sparkles className="h-7 w-7 text-amber-300 animate-pulse" />
             </div>
             <DialogTitle className="text-2xl font-black text-zinc-100">
               {winner?.name} Wins the Deal!
