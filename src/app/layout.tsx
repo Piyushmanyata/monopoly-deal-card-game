@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "DEAL!",
-  description: "A polished browser card-game table with bots and room-code multiplayer scaffolding.",
+  title: "DEAL! - Single Player Monopoly Deal",
+  description: "A polished, immersive single player Monopoly Deal card game table with bots.",
 };
 
 export default function RootLayout({

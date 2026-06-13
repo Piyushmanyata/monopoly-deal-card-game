@@ -26,6 +26,62 @@ function randomNoise(difficulty: BotDifficulty): number {
   return Math.random() * 6;
 }
 
+function scoreReassignWild(state: GameState, move: Move & { type: "reassign_wild" }): number {
+  const player = state.players.find((candidate) => candidate.id === move.playerId);
+  if (!player) {
+    return -100;
+  }
+
+  const entry = player.properties.find((candidate) => candidate.card.id === move.cardId);
+  if (!entry) {
+    return -100;
+  }
+
+  const colors: PropertyColor[] = [
+    "dark-blue",
+    "green",
+    "red",
+    "yellow",
+    "orange",
+    "pink",
+    "light-blue",
+    "brown",
+    "railroad",
+    "utility",
+  ];
+
+  const beforeComplete = completeSetColors(player).length;
+  const beforeRentTotal = colors.reduce((sum, color) => sum + rentForColor(player, color), 0);
+
+  try {
+    const afterState = applyMove(state, move).state;
+    const afterPlayer = afterState.players.find((candidate) => candidate.id === move.playerId);
+    if (!afterPlayer) {
+      return -100;
+    }
+
+    const afterComplete = completeSetColors(afterPlayer).length;
+    const afterRentTotal = colors.reduce((sum, color) => sum + rentForColor(afterPlayer, color), 0);
+
+    if (afterComplete > beforeComplete) {
+      return 45;
+    }
+
+    if (afterRentTotal > beforeRentTotal) {
+      return 25;
+    }
+
+    if (afterComplete < beforeComplete || afterRentTotal < beforeRentTotal) {
+      return -50;
+    }
+
+    // No actual change in complete sets or rent. It's useless.
+    return -20;
+  } catch {
+    return -100;
+  }
+}
+
 function scorePropertyMove(state: GameState, move: PlayPropertyMove): number {
   const player = state.players.find((candidate) => candidate.id === move.playerId);
   const card = player?.hand.find((candidate) => candidate.id === move.cardId);
@@ -101,7 +157,7 @@ function moveScore(state: GameState, move: Move, difficulty: BotDifficulty): num
   }
 
   if (move.type === "reassign_wild") {
-    return 8;
+    return scoreReassignWild(state, move);
   }
 
   if (move.type === "play_pass_go") {

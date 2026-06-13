@@ -16,6 +16,10 @@ import {
   Sparkles,
   Volume2,
   VolumeX,
+  CreditCard,
+  History,
+  X,
+  AlertTriangle
 } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -68,7 +72,6 @@ function moveCardId(move: Move): string | undefined {
   if ("cardId" in move) {
     return move.cardId;
   }
-
   return undefined;
 }
 
@@ -88,15 +91,15 @@ function colorName(color: PropertyColor): string {
 }
 
 function moveLabel(state: GameState, move: Move): string {
-  if (move.type === "play_to_bank") return "Bank for money";
+  if (move.type === "play_to_bank") return "Bank for Money";
   if (move.type === "play_property") return `Play to ${colorName(move.assignedColor)}`;
   if (move.type === "reassign_wild") return `Reassign to ${colorName(move.assignedColor)}`;
-  if (move.type === "play_pass_go") return "Draw 2 now";
+  if (move.type === "play_pass_go") return "Draw 2 Cards";
   if (move.type === "play_house") return `Build House on ${colorName(move.color)}`;
   if (move.type === "play_hotel") return `Build Hotel on ${colorName(move.color)}`;
   if (move.type === "play_rent") {
     const target = move.targetId ? ` from ${playerName(state, move.targetId)}` : " from everyone";
-    return `${move.doubleRentCardId ? "Double " : ""}${colorName(move.color)} rent${target}`;
+    return `${move.doubleRentCardId ? "Double " : ""}${colorName(move.color)} Rent${target}`;
   }
   if (move.type === "play_debt_collector") return `Collect $5M from ${playerName(state, move.targetId)}`;
   if (move.type === "play_birthday") return "Collect $2M from everyone";
@@ -106,9 +109,9 @@ function moveLabel(state: GameState, move: Move): string {
   if (move.type === "end_turn") return "End turn";
   if (move.type === "draw") return "Draw";
   if (move.type === "discard") return "Discard selected";
-  if (move.type === "respond_jsn") return move.useCardId ? "Block with Hard No" : "Allow";
-  if (move.type === "pay") return "Pay";
-  return "Play";
+  if (move.type === "respond_jsn") return move.useCardId ? "Block with Just Say No" : "Allow Action";
+  if (move.type === "pay") return "Pay Debt";
+  return "Play Card";
 }
 
 function eventToSfx(event: GameEvent): "draw" | "place" | "money" | "steal" | "no" | "turn" | "win" {
@@ -142,18 +145,18 @@ function paymentAssets(player: PlayerState): PaymentAsset[] {
       .map((entry) => ({
         card: entry.card,
         source: "property" as const,
-        label: `${colorName(entry.assignedColor)} property - ${entry.card.name}`,
+        label: `${colorName(entry.assignedColor)} - ${entry.card.name}`,
       })),
   ];
 }
 
-function setupGame(botCount: number, difficulty: BotDifficulty): GameState {
+function setupGame(botCount: number, difficulty: BotDifficulty, pName: string, pAvatar: string): GameState {
   const players = [
-    { id: "human", name: "You", avatar: "Y", isBot: false },
+    { id: "human", name: pName, avatar: pAvatar, isBot: false },
     ...Array.from({ length: botCount }, (_, index) => ({
       id: `bot-${index + 1}`,
-      name: `${difficulty === "hard" ? "Sharp" : difficulty === "easy" ? "Soft" : "Steady"} Bot ${index + 1}`,
-      avatar: `${index + 1}`,
+      name: `${difficulty === "hard" ? "Tactical" : difficulty === "easy" ? "Casual" : "Steady"} Bot ${index + 1}`,
+      avatar: ["🤖", "🧠", "⚡", "👾"][index % 4],
       isBot: true,
     })),
   ];
@@ -167,26 +170,42 @@ function setupGame(botCount: number, difficulty: BotDifficulty): GameState {
 }
 
 function SetColumn({ group, small }: { group: ReturnType<typeof groupedProperties>[number]; small?: boolean }) {
-  const progress = Math.min(100, (group.cards.length / (group.color === "railroad" ? 4 : group.color === "brown" || group.color === "dark-blue" || group.color === "utility" ? 2 : 3)) * 100);
+  const maxNeeded = group.color === "railroad" ? 4 : group.color === "brown" || group.color === "dark-blue" || group.color === "utility" ? 2 : 3;
+  const progress = Math.min(100, (group.cards.length / maxNeeded) * 100);
 
   return (
-    <div className={cn("min-w-28 rounded-md border border-white/10 bg-white/[0.055] p-2", small && "min-w-20 p-1.5")}>
-      <div className="mb-1 flex items-center justify-between gap-2">
-        <span className="flex items-center gap-1 text-[11px] font-bold uppercase text-zinc-200">
-          <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: propertyColorStyle(group.color) }} />
-          {small ? colorName(group.color).slice(0, 6) : colorName(group.color)}
+    <div
+      className={cn(
+        "min-w-28 rounded-xl border p-2.5 transition-all duration-300 relative bg-zinc-950/70",
+        group.complete
+          ? "border-amber-400 shadow-[0_0_15px_rgba(245,158,11,0.15)] bg-gradient-to-b from-zinc-950/70 to-amber-950/10"
+          : "border-white/5 hover:border-white/10",
+        small && "min-w-24 p-2"
+      )}
+    >
+      {group.complete && (
+        <span className="absolute -top-2 -right-2 grid h-5 w-5 place-items-center rounded-full bg-amber-400 text-amber-950 text-[10px] font-black shadow-lg">
+          ★
         </span>
-        <Badge variant={group.complete ? "default" : "secondary"} className="h-5 px-1.5 text-[10px]">
-          {group.cards.length}
+      )}
+      <div className="mb-1.5 flex items-center justify-between gap-1">
+        <span className="flex items-center gap-1 text-[10px] sm:text-[11px] font-black uppercase text-zinc-300">
+          <span className="h-2.5 w-2.5 rounded-full shadow-inner" style={{ backgroundColor: propertyColorStyle(group.color) }} />
+          {small ? colorName(group.color).slice(0, 5) + "." : colorName(group.color)}
+        </span>
+        <Badge variant={group.complete ? "default" : "secondary"} className={cn("h-4.5 px-1.5 text-[9px] font-mono", group.complete && "bg-amber-400 text-amber-950")}>
+          {group.cards.length}/{maxNeeded}
         </Badge>
       </div>
-      <Progress value={progress} className="h-1.5 bg-zinc-800" />
-      <div className="mt-2 flex -space-x-7">
-        {group.cards.map((entry) => (
-          <CardView key={entry.card.id} card={entry.card} compact className={small ? "h-20 w-14" : "h-24 w-16"} />
+      <Progress value={progress} className={cn("h-1 bg-zinc-900", group.complete ? "bg-amber-400/20" : "")} />
+      <div className="mt-2.5 flex -space-x-8 overflow-visible py-1">
+        {group.cards.map((entry, idx) => (
+          <div key={entry.card.id} style={{ zIndex: idx, transform: `rotate(${(idx - (group.cards.length - 1) / 2) * 2}deg)` }}>
+            <CardView card={entry.card} compact className={small ? "h-16 w-11" : "h-20 w-14"} />
+          </div>
         ))}
       </div>
-      <p className="mt-2 font-mono text-[11px] text-emerald-200">Rent ${group.rent}M</p>
+      <p className="mt-2 font-mono text-[10px] font-bold text-emerald-400">Rent ${group.rent}M</p>
     </div>
   );
 }
@@ -197,37 +216,69 @@ function PlayerPanel({ player, active, self }: { player: PlayerState; active: bo
     <motion.section
       layout
       className={cn(
-        "rounded-lg border bg-zinc-950/50 p-3 shadow-lg",
-        active ? "border-emerald-300 shadow-emerald-500/20" : "border-white/10",
-        self && "bg-emerald-950/20",
+        "rounded-xl border p-3.5 shadow-xl transition-all duration-300 relative",
+        active
+          ? "border-emerald-400/80 bg-zinc-900/50 shadow-emerald-500/10"
+          : "border-white/5 bg-zinc-950/20",
+        self && "bg-emerald-950/5 border-emerald-950/20",
       )}
     >
       <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <div className="grid h-9 w-9 place-items-center rounded-full border border-white/15 bg-zinc-900 font-mono text-sm font-black">
+        <div className="flex items-center gap-3">
+          <div className={cn(
+            "grid h-10 w-10 place-items-center rounded-full border bg-zinc-900 text-base font-black shadow-lg font-mono",
+            active ? "border-emerald-400 text-emerald-300" : "border-white/10 text-zinc-300"
+          )}>
             {player.avatar}
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <p className="text-sm font-bold">{player.name}</p>
-              {player.isBot && <Bot className="h-3.5 w-3.5 text-zinc-400" />}
+            <div className="flex items-center gap-1.5">
+              <p className="text-sm font-black text-zinc-100">{player.name}</p>
+              {player.isBot && (
+                <Badge variant="outline" className="text-[9px] px-1 py-0 h-4 border-zinc-800 text-zinc-500 gap-0.5">
+                  <Bot className="h-2.5 w-2.5" /> Bot
+                </Badge>
+              )}
             </div>
-            <p className="font-mono text-[11px] text-zinc-400">
-              {player.hand.length} cards · ${bankTotal(player)}M bank · ${playerNetWorth(player)}M worth
+            <p className="font-mono text-[10px] text-zinc-400 mt-0.5">
+              {player.hand.length} cards · ${bankTotal(player)}M bank · ${playerNetWorth(player)}M net worth
             </p>
           </div>
         </div>
-        {active && <Badge className="bg-emerald-300 text-emerald-950">Turn</Badge>}
+        {active && (
+          <Badge className="bg-emerald-400 text-emerald-950 font-bold border border-emerald-500/25 animate-pulse text-[10px]">
+            ACTIVE TURN
+          </Badge>
+        )}
       </div>
-      {groups.length > 0 ? (
-        <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
-          {groups.map((group) => (
-            <SetColumn key={group.color} group={group} small={!self} />
-          ))}
-        </div>
-      ) : (
-        <p className="mt-3 rounded-md border border-dashed border-white/10 py-5 text-center text-xs text-zinc-500">No properties yet</p>
-      )}
+
+      {/* Tableau cards rendering */}
+      <div className="mt-3 flex gap-2 overflow-x-auto pb-1.5 scrollbar-thin">
+        {/* Bank card views */}
+        {player.bank.length > 0 && (
+          <div className="min-w-20 rounded-xl border border-white/5 bg-zinc-950/80 p-2 text-center flex flex-col justify-between">
+            <span className="text-[10px] font-black uppercase text-zinc-400 tracking-wider">Vault</span>
+            <div className="my-1.5 flex justify-center -space-x-5 overflow-visible">
+              {player.bank.slice(0, 4).map((card, idx) => (
+                <div key={card.id} style={{ zIndex: idx, transform: `rotate(${(idx - 1.5) * 4}deg)` }}>
+                  <CardView card={card} compact className="h-12 w-8 shadow" />
+                </div>
+              ))}
+            </div>
+            <p className="font-mono text-[11px] font-black text-amber-300">${bankTotal(player)}M</p>
+          </div>
+        )}
+
+        {groups.map((group) => (
+          <SetColumn key={group.color} group={group} small={!self} />
+        ))}
+
+        {groups.length === 0 && player.bank.length === 0 && (
+          <p className="w-full py-6 text-center text-[11px] text-zinc-600 border border-dashed border-white/5 rounded-xl">
+            Tableau is empty
+          </p>
+        )}
+      </div>
     </motion.section>
   );
 }
@@ -235,34 +286,36 @@ function PlayerPanel({ player, active, self }: { player: PlayerState; active: bo
 function RulesSheet() {
   return (
     <Sheet>
-      <SheetTrigger render={<Button variant="outline" size="sm" />}>
+      <SheetTrigger render={<Button variant="outline" size="sm" className="cursor-pointer font-semibold" />}>
         <Info className="h-4 w-4" />
-        Rules
+        Rules Reference
       </SheetTrigger>
       <SheetContent side="right" className="w-full overflow-y-auto border-white/10 bg-zinc-950 text-zinc-50 sm:max-w-xl">
         <SheetHeader>
-          <SheetTitle>How to Play</SheetTitle>
+          <SheetTitle className="text-xl font-bold">Monopoly Deal Rules</SheetTitle>
         </SheetHeader>
         <Tabs defaultValue="flow" className="mt-6">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="flow">Flow</TabsTrigger>
-            <TabsTrigger value="cards">Cards</TabsTrigger>
-            <TabsTrigger value="edge">Nuance</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3 bg-zinc-900 border border-white/5">
+            <TabsTrigger value="flow" className="font-bold text-xs">Turn Flow</TabsTrigger>
+            <TabsTrigger value="cards" className="font-bold text-xs">Card Types</TabsTrigger>
+            <TabsTrigger value="nuances" className="font-bold text-xs">Table Rules</TabsTrigger>
           </TabsList>
-          <TabsContent value="flow" className="space-y-3 text-sm text-zinc-300">
-            <p>Draw 2 at turn start. If your hand is empty, draw 5. Play up to 3 cards, then discard down to 7.</p>
-            <p>First player to complete 3 different property sets on their own turn wins immediately.</p>
-            <p>Money and action/rent cards can be banked. Properties are played to sets and can later be used as payment.</p>
+          <TabsContent value="flow" className="space-y-4 text-sm text-zinc-300 mt-4 leading-relaxed">
+            <p>1. Draw 2 cards at start of your turn. If your hand is empty at turn start, draw 5 cards.</p>
+            <p>2. Play up to 3 cards. You can play properties, add money to bank, or launch action attacks.</p>
+            <p>3. End turn. If you hold more than 7 cards, you must discard the excess down to 7.</p>
+            <p className="font-semibold text-emerald-400">First to complete 3 different color property sets wins!</p>
           </TabsContent>
-          <TabsContent value="cards" className="space-y-3 text-sm text-zinc-300">
-            <p>Normal rent cards charge every opponent for one listed color you own. Wild Rent targets one player for any color you own.</p>
-            <p>Hard No blocks targeted actions and can be chained. Odd chains cancel the action; even chains let it through.</p>
-            <p>House and Hotel only attach to complete non-railroad, non-utility sets. Hotel requires a House first.</p>
+          <TabsContent value="cards" className="space-y-4 text-sm text-zinc-300 mt-4 leading-relaxed">
+            <p><strong>Property Cards</strong>: Place them in sets. Wildcards can be reassigned to complete sets.</p>
+            <p><strong>Bank/Money</strong>: Any cash values or actions can be placed in your Vault. Action cards in bank act purely as money and can never be played as actions again.</p>
+            <p><strong>Actions</strong>: Play to the center discard pile to trigger rent requests, steals, or swaps.</p>
+            <p><strong>Just Say No</strong>: Play out of turn to cancel any action card targeted at you. Can be countered with another JSN!</p>
           </TabsContent>
-          <TabsContent value="edge" className="space-y-3 text-sm text-zinc-300">
-            <p>No change is given. If you owe $5M and pay $10M, the receiver keeps it all.</p>
-            <p>If you are short, you pay every valid asset you have. Prismatic wilds are never payable.</p>
-            <p>If a built set breaks, orphaned House/Hotel cards move into that player&apos;s bank as money.</p>
+          <TabsContent value="nuances" className="space-y-4 text-sm text-zinc-300 mt-4 leading-relaxed">
+            <p><strong>No Change Given</strong>: If you owe rent and only have high-value cards, you must pay with them. Change is not refunded.</p>
+            <p><strong>Short Payment</strong>: If you cannot afford rent, you must pay all available properties and bank money. Hand cards cannot be used to pay rent.</p>
+            <p><strong>Orphan Buildings</strong>: If a property set is broken up, any houses/hotels collapse into bank money.</p>
           </TabsContent>
         </Tabs>
       </SheetContent>
@@ -272,15 +325,20 @@ function RulesSheet() {
 
 export function GameClient() {
   const searchParams = useSearchParams();
+  const pName = searchParams.get("name") ?? "You";
+  const pAvatar = searchParams.get("avatar") ?? "😎";
   const initialBots = Math.max(1, Math.min(Number(searchParams.get("bots") ?? "2") || 2, 4));
+  const initialDifficulty = (searchParams.get("difficulty") as BotDifficulty) ?? "normal";
+
   const [botCount, setBotCount] = useState(initialBots);
-  const [difficulty, setDifficulty] = useState<BotDifficulty>("normal");
-  const [state, setState] = useState<GameState>(() => createInitialState({ botCount: 2, seed: 20260613 }));
+  const [difficulty, setDifficulty] = useState<BotDifficulty>(initialDifficulty);
+  const [state, setState] = useState<GameState>(() => setupGame(initialBots, initialDifficulty, pName, pAvatar));
   const [hydrated, setHydrated] = useState(false);
   const [selectedCardId, setSelectedCardId] = useState<string>();
   const [selectedPaymentIds, setSelectedPaymentIds] = useState<string[]>([]);
   const [message, setMessage] = useState<string>();
   const [muted, setMuted] = useState(false);
+  const [activeBotMessage, setActiveBotMessage] = useState<string>("");
 
   const human = state.players.find((player) => player.id === "human") ?? state.players[0];
   const current = state.players[state.currentPlayerIndex];
@@ -319,20 +377,22 @@ export function GameClient() {
 
   const startNewGame = useCallback(
     (nextBots = botCount, nextDifficulty = difficulty) => {
-      const nextState = setupGame(nextBots, nextDifficulty);
+      const nextState = setupGame(nextBots, nextDifficulty, pName, pAvatar);
       setState(nextState);
       setBotCount(nextBots);
       setDifficulty(nextDifficulty);
       setSelectedCardId(undefined);
       setSelectedPaymentIds([]);
       setMessage(undefined);
+      setActiveBotMessage("");
       if (typeof window !== "undefined") {
         window.localStorage.setItem(STORAGE_KEY, serialize(nextState));
       }
     },
-    [botCount, difficulty],
+    [botCount, difficulty, pName, pAvatar],
   );
 
+  // Hydrate local save on mount
   useEffect(() => {
     if (typeof window === "undefined") {
       return;
@@ -344,7 +404,14 @@ export function GameClient() {
     const saved = window.localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
-        setState(deserialize(saved));
+        const loadedState = deserialize(saved);
+        // Verify names/avatars match the search query if loaded from previous session
+        const humanPlayer = loadedState.players.find((p) => p.id === "human");
+        if (humanPlayer) {
+          humanPlayer.name = pName;
+          humanPlayer.avatar = pAvatar;
+        }
+        setState(loadedState);
         setHydrated(true);
         return;
       } catch {
@@ -352,35 +419,39 @@ export function GameClient() {
       }
     }
 
-    const nextState = setupGame(initialBots, "normal");
+    const nextState = setupGame(initialBots, initialDifficulty, pName, pAvatar);
     setState(nextState);
     setHydrated(true);
-  }, [initialBots]);
+  }, [initialBots, initialDifficulty, pName, pAvatar]);
 
+  // Save changes locally
   useEffect(() => {
     if (!hydrated || typeof window === "undefined") {
       return;
     }
-
     window.localStorage.setItem(STORAGE_KEY, serialize(state));
   }, [hydrated, state]);
 
+  // Audio preference storage
   useEffect(() => {
     if (typeof window !== "undefined") {
       window.localStorage.setItem("deal.muted", String(muted));
     }
   }, [muted]);
 
+  // Confetti on win
   useEffect(() => {
     if (!winner) {
       return;
     }
 
     playSfx("win", muted);
-    confetti({ particleCount: 140, spread: 75, origin: { y: 0.68 } });
-    window.setTimeout(() => confetti({ particleCount: 90, spread: 120, origin: { y: 0.22 } }), 350);
+    confetti({ particleCount: 150, spread: 80, origin: { y: 0.6 } });
+    const timer = window.setTimeout(() => confetti({ particleCount: 100, spread: 110, origin: { y: 0.3 } }), 300);
+    return () => window.clearTimeout(timer);
   }, [muted, winner]);
 
+  // Asynchronous Bot moves handling
   useEffect(() => {
     if (!hydrated || winner) {
       return;
@@ -397,30 +468,37 @@ export function GameClient() {
 
     const actor = state.players.find((player) => player.id === actingPlayerId);
     if (!actor?.isBot) {
+      setActiveBotMessage("");
       return;
     }
+
+    setActiveBotMessage(`🤖 ${actor.name} is thinking...`);
 
     const timer = window.setTimeout(() => {
       setState((previous) => {
         const move = chooseBotMove(previous, actor.id, difficulty);
         if (!move) {
+          setActiveBotMessage(`🤖 ${actor.name} ends action.`);
           return previous;
         }
 
         try {
           const result = applyMove(previous, move);
           playEvents(result.events);
+          
+          const label = moveLabel(previous, move);
+          setActiveBotMessage(`🤖 ${actor.name} played: ${label}`);
           return result.state;
         } catch {
           return previous;
         }
       });
-    }, state.pendingInteraction ? 750 : 950);
+    }, state.pendingInteraction ? 1100 : 1600); // readable step delays
 
     return () => window.clearTimeout(timer);
   }, [current.id, difficulty, hydrated, playEvents, state, winner]);
 
-  // Automatically draw cards when it's the human player's turn and the draw action is available
+  // Auto-draw helper for player
   useEffect(() => {
     if (!hydrated || winner) {
       return;
@@ -429,7 +507,7 @@ export function GameClient() {
     if (current.id === "human" && drawMove) {
       const timer = window.setTimeout(() => {
         commitMove(drawMove);
-      }, 700); // natural delay so player can register the turn change
+      }, 700);
       return () => window.clearTimeout(timer);
     }
   }, [current.id, drawMove, hydrated, winner, commitMove]);
@@ -456,54 +534,72 @@ export function GameClient() {
   };
 
   return (
-    <main className="min-h-screen overflow-hidden bg-[radial-gradient(circle_at_50%_0%,rgba(44,137,102,0.26),transparent_36%),linear-gradient(135deg,#06110e,#0e1716_45%,#130d10)] text-zinc-50">
-      <div className="mx-auto flex min-h-screen w-full max-w-[1800px] flex-col gap-4 px-3 py-3 sm:px-5 sm:py-5">
-        <header className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/10 bg-black/20 px-4 py-3 backdrop-blur">
-          <div>
-            <div className="flex items-center gap-2">
-              <Crown className="h-5 w-5 text-amber-300" />
-              <h1 className="text-xl font-black tracking-tight">DEAL!</h1>
-              <Badge variant="outline" className="border-emerald-300/40 text-emerald-100">
-                Turn {state.turnNumber}
-              </Badge>
+    <main className="min-h-screen overflow-x-hidden bg-[radial-gradient(ellipse_at_50%_0%,rgba(16,185,129,0.22)_0%,rgba(6,25,18,0.95)_70%),linear-gradient(to_bottom,#020704,#090e0c_50%,#11090f)] text-zinc-50 flex flex-col">
+      <div className="mx-auto flex w-full max-w-[1700px] flex-col gap-4 p-3 sm:p-5 flex-1 justify-between">
+        
+        {/* POLISHED TABLEHEADER */}
+        <header className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/5 bg-black/40 px-4 py-3 backdrop-blur-xl shadow-lg">
+          <div className="flex items-center gap-3">
+            <Crown className="h-5 w-5 text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg font-black tracking-tight text-zinc-100">DEAL!</h1>
+                <Badge variant="outline" className="border-emerald-500/30 text-emerald-300 font-mono text-[10px] h-5">
+                  Round {state.turnNumber}
+                </Badge>
+              </div>
+              <p className="text-[10px] text-zinc-400 mt-0.5 font-medium">
+                {winner ? `Winner: ${winner.name}` : `${current.name}'s active turn · ${state.phase.replace("_", " ")}`}
+              </p>
             </div>
-            <p className="text-xs text-zinc-400">
-              {winner ? `${winner.name} won` : `${current.name} is active · ${state.phase.replace("_", " ")}`}
-            </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge className="bg-zinc-800 text-zinc-200">
-              Plays: {"●".repeat(state.playsRemaining)}
-              {"○".repeat(Math.max(0, 3 - state.playsRemaining))}
+          
+          {/* TURN PLAYS AND CONTROLS */}
+          <div className="flex flex-wrap items-center gap-2.5">
+            <Badge className="bg-zinc-950 text-zinc-200 border border-white/5 h-8 px-2.5 text-xs font-semibold gap-1">
+              Plays Left:
+              <span className="flex gap-0.5 ml-1 text-emerald-400">
+                {"●".repeat(state.playsRemaining)}
+                <span className="text-zinc-700">{"○".repeat(Math.max(0, 3 - state.playsRemaining))}</span>
+              </span>
             </Badge>
-            <Button variant="outline" size="sm" onClick={() => setMuted((value) => !value)}>
-              {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
-              Sound
+            
+            <Button variant="outline" size="sm" onClick={() => setMuted((v) => !v)} className="cursor-pointer h-8 border-white/5 text-zinc-300">
+              {muted ? <VolumeX className="h-4 w-4 text-rose-400" /> : <Volume2 className="h-4 w-4 text-emerald-400" />}
+              <span className="hidden sm:inline">Sound</span>
             </Button>
+            
             <RulesSheet />
-            <Button variant="outline" size="sm" onClick={() => startNewGame()}>
-              <RefreshCw className="h-4 w-4" />
-              Rematch
+            
+            <Button variant="outline" size="sm" onClick={() => startNewGame()} className="cursor-pointer h-8 border-white/5 text-zinc-300 gap-1.5 font-semibold">
+              <RefreshCw className="h-3.5 w-3.5" />
+              Restart
             </Button>
-            <Link href="/" className={buttonVariants({ variant: "secondary", size: "sm" })}>
-              <DoorOpen className="h-4 w-4" />
-              Menu
+            
+            <Link href="/" className={cn(buttonVariants({ variant: "secondary", size: "sm" }), "h-8 gap-1.5 font-semibold text-zinc-300 border border-white/5 bg-zinc-900/50 hover:bg-zinc-900 cursor-pointer")}>
+              <DoorOpen className="h-3.5 w-3.5" />
+              Main Menu
             </Link>
           </div>
         </header>
 
+        {/* FEEDBACK STATUS ALERTS */}
         {message && (
           <motion.div
-            initial={{ opacity: 0, y: -8 }}
+            initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="rounded-md border border-amber-300/35 bg-amber-300/10 px-4 py-2 text-sm text-amber-100"
+            className="rounded-lg border border-rose-500/20 bg-rose-950/20 px-4 py-2 text-xs text-rose-300 flex items-center gap-2"
           >
+            <AlertTriangle className="h-4 w-4 text-rose-400 shrink-0" />
             {message}
           </motion.div>
         )}
 
-        <section className="grid flex-1 grid-rows-[auto_1fr_auto] gap-4">
-          <div className="grid gap-3 lg:grid-cols-2 xl:grid-cols-4">
+        {/* GAMEBOARD GRID LAYOUT */}
+        <section className="grid flex-1 grid-rows-[auto_1fr_auto] gap-4 mt-2">
+          
+          {/* TOP ROW: OPPONENTS (BOTS) */}
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {state.players
               .filter((player) => player.id !== human.id)
               .map((player) => (
@@ -511,131 +607,200 @@ export function GameClient() {
               ))}
           </div>
 
-          <div className="grid min-h-[360px] lg:h-[400px] gap-4 lg:grid-cols-[1fr_340px]">
-            <section className="relative overflow-hidden rounded-lg border border-emerald-200/10 bg-[radial-gradient(circle_at_50%_50%,rgba(19,83,58,0.6),rgba(8,34,27,0.75)_52%,rgba(5,12,10,0.9))] p-4 shadow-2xl">
-              <div className="absolute inset-0 opacity-35 [background-image:linear-gradient(120deg,rgba(255,255,255,0.05)_1px,transparent_1px)] [background-size:18px_18px]" />
-              <div className="relative grid h-full place-items-center">
-                <div className="grid grid-cols-3 items-center gap-5">
-                  <div className="text-center">
-                    <CardView faceDown compact className="mx-auto h-32 w-24" />
-                    <p className="mt-2 font-mono text-xs text-zinc-300">{state.deck.length} in draw</p>
+          {/* MIDDLE ROW: CENTER felt table + log activity */}
+          <div className="grid min-h-[350px] gap-4 lg:grid-cols-[1fr_320px]">
+            {/* Casino felt table */}
+            <section className="relative overflow-hidden rounded-2xl border border-emerald-500/10 bg-[radial-gradient(circle_at_50%_50%,rgba(16,185,129,0.14),rgba(5,20,15,0.88)_60%,rgba(3,8,6,0.96))] p-4 shadow-2xl flex items-center justify-center">
+              <div className="absolute inset-0 opacity-10 [background-image:radial-gradient(rgba(255,255,255,0.08)_1px,transparent_1px)] [background-size:20px_20px] pointer-events-none" />
+              
+              {/* Bot thinking status bubble */}
+              {activeBotMessage && (
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 rounded-full border border-emerald-400/20 bg-emerald-950/70 px-4 py-1.5 text-xs text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.2)] animate-pulse flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping" />
+                  {activeBotMessage}
+                </div>
+              )}
+
+              {/* CENTER DECKS */}
+              <div className="grid grid-cols-3 items-center gap-6 max-w-lg w-full z-10">
+                {/* DRAW PILE */}
+                <div className="text-center flex flex-col items-center">
+                  <div className="relative group">
+                    <div className="absolute inset-0 bg-emerald-500/10 rounded-xl blur-md group-hover:bg-emerald-500/25 transition duration-300" />
+                    <CardView faceDown compact className="mx-auto h-28 w-20 border-2 border-emerald-500/20 relative shadow-2xl" />
+                    <span className="absolute -bottom-1 -right-1 grid h-5 w-7 place-items-center rounded bg-zinc-950 border border-white/10 text-[10px] font-black font-mono">
+                      {state.deck.length}
+                    </span>
                   </div>
-                  <div className="flex flex-col items-center gap-3">
-                    {drawMove && (
-                      <Button size="lg" onClick={() => commitMove(drawMove)}>
-                        <Play className="h-4 w-4" />
-                        Draw Cards
-                      </Button>
-                    )}
-                    {endTurnMove && (
-                      <Button variant="secondary" onClick={() => commitMove(endTurnMove)}>
-                        <Check className="h-4 w-4" />
-                        End Turn
-                      </Button>
-                    )}
-                    {discardMove && (
-                      <Button variant="destructive" onClick={() => commitMove(discardMove)}>
-                        <ClipboardList className="h-4 w-4" />
-                        Auto Discard
-                      </Button>
-                    )}
-                    <div className="rounded-full border border-white/10 bg-black/35 px-4 py-2 text-center text-xs text-zinc-300">
-                      {state.pendingInteraction ? "Resolve the prompt to continue" : `${current.name}'s ${state.phase} phase`}
+                  <p className="mt-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Draw Pile</p>
+                </div>
+
+                {/* GAME CONTROL BUTTONS */}
+                <div className="flex flex-col items-center gap-2.5">
+                  {drawMove && (
+                    <Button size="lg" onClick={() => commitMove(drawMove)} className="w-full bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-black gap-2 shadow-[0_0_15px_rgba(16,185,129,0.35)] cursor-pointer">
+                      <Play className="h-4 w-4 fill-current" />
+                      Draw Cards
+                    </Button>
+                  )}
+                  
+                  {endTurnMove && (
+                    <Button variant="secondary" size="default" onClick={() => commitMove(endTurnMove)} className="w-full border border-white/5 bg-zinc-900/80 hover:bg-zinc-800 text-zinc-100 font-bold gap-1.5 cursor-pointer">
+                      <Check className="h-4 w-4 text-emerald-400" />
+                      End Turn
+                    </Button>
+                  )}
+                  
+                  {discardMove && (
+                    <Button variant="destructive" size="sm" onClick={() => commitMove(discardMove)} className="w-full font-bold gap-1.5 cursor-pointer">
+                      <ClipboardList className="h-3.5 w-3.5" />
+                      Discard down
+                    </Button>
+                  )}
+
+                  {!drawMove && !endTurnMove && !discardMove && (
+                    <div className="rounded-full border border-white/5 bg-black/40 px-3 py-1.5 text-center text-[10px] font-bold text-zinc-400 tracking-wider uppercase">
+                      {state.pendingInteraction ? "Awaiting input" : "Bot turn active"}
                     </div>
-                  </div>
-                  <div className="text-center">
+                  )}
+                </div>
+
+                {/* DISCARD PILE */}
+                <div className="text-center flex flex-col items-center">
+                  <div className="relative">
                     {state.discard.at(-1) ? (
-                      <CardView card={state.discard.at(-1)} compact className="mx-auto h-32 w-24" />
+                      <>
+                        <CardView card={state.discard.at(-1)} compact className="mx-auto h-28 w-20 shadow-2xl relative" />
+                        <span className="absolute -bottom-1 -right-1 grid h-5 w-7 place-items-center rounded bg-zinc-950 border border-white/10 text-[10px] font-black font-mono">
+                          {state.discard.length}
+                        </span>
+                      </>
                     ) : (
-                      <div className="mx-auto grid h-32 w-24 place-items-center rounded-lg border border-dashed border-white/20 text-xs text-zinc-500">
+                      <div className="mx-auto grid h-28 w-20 place-items-center rounded-lg border-2 border-dashed border-white/10 text-[10px] font-black uppercase text-zinc-600 bg-black/20">
                         Empty
                       </div>
                     )}
-                    <p className="mt-2 font-mono text-xs text-zinc-300">{state.discard.length} discarded</p>
                   </div>
+                  <p className="mt-2 text-[10px] uppercase font-bold text-zinc-400 tracking-wider">Discard</p>
                 </div>
               </div>
             </section>
 
-            <aside className="flex h-[280px] lg:h-full min-h-0 flex-col rounded-lg border border-white/10 bg-zinc-950/40 p-3">
-              <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-sm font-bold">Action Feed</h2>
-                <Badge variant="secondary">{state.version}</Badge>
+            {/* ACTION LOG FEED */}
+            <aside className="flex h-[250px] lg:h-full min-h-0 flex-col rounded-2xl border border-white/5 bg-zinc-950/50 p-4 shadow-xl">
+              <div className="mb-3.5 flex items-center justify-between border-b border-white/5 pb-2">
+                <div className="flex items-center gap-1.5 text-xs font-black uppercase text-zinc-300 tracking-wider">
+                  <History className="h-4 w-4 text-emerald-400" />
+                  Live Action Log
+                </div>
+                <Badge variant="secondary" className="font-mono text-[9px] bg-zinc-900 border-white/5">
+                  v{state.version}
+                </Badge>
               </div>
-              <ScrollArea className="min-h-0 flex-1 pr-3">
+              <ScrollArea className="min-h-0 flex-1 pr-1.5 scrollbar-thin">
                 <div className="space-y-2">
                   {[...state.log].reverse().map((event) => (
-                    <div key={event.id} className="rounded-md border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-zinc-300">
+                    <div key={event.id} className="rounded-lg border border-white/5 bg-zinc-900/30 px-3 py-2 text-[11px] text-zinc-300 leading-relaxed font-medium">
                       {event.message}
                     </div>
                   ))}
-                  {state.log.length === 0 && <p className="py-8 text-center text-xs text-zinc-500">No public actions yet.</p>}
+                  {state.log.length === 0 && (
+                    <p className="py-12 text-center text-xs text-zinc-600 font-medium">
+                      No turns logged yet. Deal to start!
+                    </p>
+                  )}
                 </div>
               </ScrollArea>
             </aside>
           </div>
 
-          <section className="rounded-lg border border-white/10 bg-black/30 p-3 shadow-2xl">
+          {/* BOTTOM ROW: USER HAND / CONTROL */}
+          <section className="rounded-2xl border border-white/5 bg-black/20 p-4 shadow-2xl mt-2 backdrop-blur-xl">
             <PlayerPanel player={human} active={current.id === human.id} self />
-            <Separator className="my-3 bg-white/10" />
-            <div className="grid gap-3 lg:grid-cols-[1fr_320px]">
-              <div className="overflow-x-auto pb-2">
-                <div className="flex min-h-56 items-end gap-2 px-1">
+            <Separator className="my-3.5 bg-white/5" />
+            
+            <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
+              {/* Hand view */}
+              <div className="overflow-x-auto pb-2 scrollbar-thin">
+                <div className="flex min-h-48 items-end gap-2 px-1">
                   <AnimatePresence initial={false}>
-                    {human.hand.map((card, index) => (
-                      <motion.div
-                        key={card.id}
-                        initial={{ opacity: 0, y: 20, rotate: 4 }}
-                        animate={{ opacity: 1, y: 0, rotate: (index - human.hand.length / 2) * 1.2 }}
-                        exit={{ opacity: 0, y: 20 }}
-                      >
-                        <CardView
-                          card={card}
-                          selected={selectedCardId === card.id}
-                          disabled={current.id !== human.id && state.pendingInteraction?.kind !== "just_say_no"}
-                          onClick={() => setSelectedCardId(card.id)}
-                        />
-                      </motion.div>
-                    ))}
+                    {human.hand.map((card, index) => {
+                      const offset = index - (human.hand.length - 1) / 2;
+                      const rot = offset * 1.5;
+                      return (
+                        <motion.div
+                          key={card.id}
+                          initial={{ opacity: 0, y: 30, rotate: 5 }}
+                          animate={{ opacity: 1, y: 0, rotate: rot }}
+                          exit={{ opacity: 0, y: 30 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          <CardView
+                            card={card}
+                            selected={selectedCardId === card.id}
+                            disabled={current.id !== human.id && state.pendingInteraction?.kind !== "just_say_no"}
+                            onClick={() => setSelectedCardId(card.id)}
+                          />
+                        </motion.div>
+                      );
+                    })}
                   </AnimatePresence>
+                  
                   {human.hand.length === 0 && (
-                    <div className="grid h-44 w-full place-items-center rounded-lg border border-dashed border-white/10 text-sm text-zinc-500">
-                      Your hand is empty. Draw 5 at your next draw phase.
+                    <div className="grid h-36 w-full place-items-center rounded-xl border border-dashed border-white/10 text-xs font-semibold text-zinc-500 bg-black/10">
+                      Your hand is empty. Drawing cards automatically...
                     </div>
                   )}
                 </div>
               </div>
 
-              <div className="rounded-lg border border-white/10 bg-zinc-950/55 p-3">
-                <div className="mb-3 flex items-center gap-2">
-                  <Hand className="h-4 w-4 text-emerald-200" />
-                  <h2 className="text-sm font-bold">Selected Card</h2>
-                </div>
-                {selectedCard ? (
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-base font-black">{selectedCard.name}</p>
-                      <p className="text-xs text-zinc-400">
-                        Value ${selectedCard.value}M · {assignableColors(selectedCard).map(colorName).join(" / ") || "Action"}
-                      </p>
-                    </div>
-                    <div className="grid gap-2">
-                      {selectedMoves.map((move, index) => (
-                        <Button key={`${move.type}-${index}`} variant="secondary" className="justify-start" onClick={() => commitMove(move)}>
-                          {moveLabel(state, move)}
-                        </Button>
-                      ))}
-                      {selectedMoves.length === 0 && (
-                        <p className="rounded-md border border-dashed border-white/10 p-3 text-xs text-zinc-500">
-                          No legal move is available from this card right now.
-                        </p>
-                      )}
-                    </div>
+              {/* CARD INSPECTOR PANEL */}
+              <div className="rounded-xl border border-white/5 bg-zinc-950/70 p-3.5 flex flex-col justify-between relative overflow-hidden">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_right,rgba(16,185,129,0.02),transparent_40%)]" />
+                <div>
+                  <div className="mb-2.5 flex items-center gap-1.5 border-b border-white/5 pb-2">
+                    <Hand className="h-4 w-4 text-emerald-400" />
+                    <h2 className="text-xs font-black uppercase tracking-wider text-zinc-300">Selected Card</h2>
                   </div>
-                ) : (
-                  <p className="rounded-md border border-dashed border-white/10 p-4 text-sm text-zinc-500">
-                    Select a card to see legal plays. Invalid actions are not shown.
-                  </p>
+                  
+                  {selectedCard ? (
+                    <div className="space-y-3 relative z-10">
+                      <div className="flex justify-between items-start gap-2">
+                        <div>
+                          <p className="text-sm font-black text-zinc-100">{selectedCard.name}</p>
+                          <p className="text-[10px] text-zinc-400 mt-0.5">
+                            Value ${selectedCard.value}M · {assignableColors(selectedCard).map(colorName).join(" / ") || "Action Card"}
+                          </p>
+                        </div>
+                        <button onClick={() => setSelectedCardId(undefined)} className="p-1 hover:bg-white/5 rounded text-zinc-400 hover:text-zinc-200">
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+
+                      <div className="grid gap-1.5 max-h-40 overflow-y-auto">
+                        {selectedMoves.map((move, index) => (
+                          <Button key={`${move.type}-${index}`} variant="secondary" className="justify-start font-bold text-xs h-9 cursor-pointer" onClick={() => commitMove(move)}>
+                            {moveLabel(state, move)}
+                          </Button>
+                        ))}
+                        {selectedMoves.length === 0 && (
+                          <p className="rounded-lg border border-dashed border-white/5 p-3 text-[10px] text-zinc-500 bg-black/20">
+                            No legal plays available for this card in the current phase.
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="rounded-lg border border-dashed border-white/5 p-4 text-xs text-zinc-500 bg-black/10 text-center leading-relaxed">
+                      Select any card in your hand to review options and play.
+                    </p>
+                  )}
+                </div>
+                
+                {selectedCard && (
+                  <div className="mt-3 text-[9px] text-zinc-500 font-medium">
+                    * Tap play option to execute immediately. Cards placed in Vault are permanent bank assets.
+                  </div>
                 )}
               </div>
             </div>
@@ -643,71 +808,98 @@ export function GameClient() {
         </section>
       </div>
 
+      {/* POPUP: PAYMENT DUE MODAL */}
       <Dialog open={Boolean(pendingPayment)} onOpenChange={() => undefined}>
-        <DialogContent className="border-white/10 bg-zinc-950 text-zinc-50 sm:max-w-2xl">
+        <DialogContent className="border-white/5 bg-zinc-950 text-zinc-50 sm:max-w-xl shadow-2xl backdrop-blur-2xl">
           <DialogHeader>
-            <DialogTitle>Payment Due</DialogTitle>
-            <DialogDescription className="text-zinc-400">
-              You owe ${pendingPayment?.debt.amount ?? 0}M to {pendingPayment ? playerName(state, pendingPayment.debt.creditorId) : ""}. No change is given.
+            <DialogTitle className="flex items-center gap-2 text-xl font-black">
+              <CreditCard className="h-5 w-5 text-emerald-400" />
+              Payment Requested
+            </DialogTitle>
+            <DialogDescription className="text-zinc-400 text-xs">
+              You owe <strong>${pendingPayment?.debt.amount ?? 0}M</strong> in rent/fees to <strong>{pendingPayment ? playerName(state, pendingPayment.debt.creditorId) : ""}</strong>. No change is returned.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-3 sm:grid-cols-2">
+          
+          <div className="grid gap-2 sm:grid-cols-2 max-h-48 overflow-y-auto pr-1">
             {assets.map((asset) => (
               <button
                 key={asset.card.id}
                 type="button"
                 onClick={() => togglePayment(asset.card.id)}
                 className={cn(
-                  "rounded-md border p-3 text-left transition",
+                  "rounded-lg border p-2.5 text-left transition relative cursor-pointer select-none",
                   selectedPaymentIds.includes(asset.card.id)
-                    ? "border-emerald-300 bg-emerald-300/10"
-                    : "border-white/10 bg-white/[0.04]",
+                    ? "border-emerald-400 bg-emerald-500/10"
+                    : "border-white/5 bg-black/20 hover:border-white/10",
                 )}
               >
-                <p className="text-sm font-bold">{asset.label}</p>
-                <p className="font-mono text-xs text-zinc-400">${asset.card.value}M · {asset.source}</p>
+                {selectedPaymentIds.includes(asset.card.id) && (
+                  <span className="absolute top-1 right-1 h-3.5 w-3.5 rounded-full bg-emerald-400 grid place-items-center text-zinc-950 text-[9px] font-black">
+                    ✓
+                  </span>
+                )}
+                <p className="text-xs font-bold text-zinc-200 line-clamp-1">{asset.label}</p>
+                <p className="font-mono text-[10px] text-zinc-400 mt-1">${asset.card.value}M · {asset.source}</p>
               </button>
             ))}
-            {assets.length === 0 && <p className="text-sm text-zinc-400">You have no payable assets.</p>}
+            {assets.length === 0 && (
+              <p className="text-xs text-zinc-500 py-6 text-center border border-dashed border-white/5 rounded-lg col-span-2">
+                You have zero payable assets. Your turn will skip payment.
+              </p>
+            )}
           </div>
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-white/10 bg-white/[0.04] p-3">
+
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/5 bg-black/40 p-3 mt-1.5">
             <div>
-              <p className="text-sm font-bold">Selected ${selectedPaymentTotal}M</p>
-              <p className="text-xs text-zinc-400">Pay enough to cover the debt, or everything if you are short.</p>
+              <p className="text-xs font-bold text-zinc-200">Paying: ${selectedPaymentTotal}M / ${pendingPayment?.debt.amount ?? 0}M</p>
+              <p className="text-[9px] text-zinc-500 mt-0.5">Pay full debt, or all properties/bank if insolvent.</p>
             </div>
             <div className="flex gap-2">
               <Button
                 variant="outline"
+                size="sm"
+                className="cursor-pointer text-xs"
                 onClick={() => pendingPayment && setSelectedPaymentIds(chooseAutoPayment(human, pendingPayment.debt.amount))}
               >
-                Auto-pay
+                Auto-Select
               </Button>
-              <Button disabled={!canPay || !pendingPayMove} onClick={() => pendingPayMove && commitMove(pendingPayMove)}>
-                Pay
+              <Button
+                size="sm"
+                className="cursor-pointer text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold"
+                disabled={!canPay || !pendingPayMove}
+                onClick={() => pendingPayMove && commitMove(pendingPayMove)}
+              >
+                Commit Pay
               </Button>
             </div>
           </div>
         </DialogContent>
       </Dialog>
 
+      {/* POPUP: JUST SAY NO CHAIN BLOCK MODAL */}
       <Dialog open={Boolean(pendingJsn)} onOpenChange={() => undefined}>
-        <DialogContent className="border-white/10 bg-zinc-950 text-zinc-50 sm:max-w-md">
+        <DialogContent className="border-white/5 bg-zinc-950 text-zinc-50 sm:max-w-md shadow-2xl backdrop-blur-2xl">
           <DialogHeader>
-            <DialogTitle>Block this action?</DialogTitle>
-            <DialogDescription className="text-zinc-400">
-              {pendingJsn ? playerName(state, pendingJsn.effect.actorId) : "A player"} targeted you. Hard No can chain back and forth.
+            <DialogTitle className="flex items-center gap-2 text-lg font-black">
+              <Shield className="h-5 w-5 text-emerald-400" />
+              Counter Targeted Action?
+            </DialogTitle>
+            <DialogDescription className="text-zinc-400 text-xs">
+              <strong>{pendingJsn ? playerName(state, pendingJsn.effect.actorId) : "An opponent"}</strong> targeted you with an action card. You can block it if you hold a Just Say No.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2 pt-2">
             {legalMoves
               .filter((move) => move.type === "respond_jsn")
               .map((move, index) => (
                 <Button
                   key={index}
                   variant={move.type === "respond_jsn" && move.useCardId ? "default" : "secondary"}
+                  className="cursor-pointer font-bold justify-start"
                   onClick={() => commitMove(move)}
                 >
-                  {move.type === "respond_jsn" && move.useCardId ? <Shield className="h-4 w-4" /> : <Check className="h-4 w-4" />}
+                  {move.type === "respond_jsn" && move.useCardId ? <Shield className="h-4 w-4 mr-2 text-emerald-300" /> : <Check className="h-4 w-4 mr-2" />}
                   {moveLabel(state, move)}
                 </Button>
               ))}
@@ -715,42 +907,50 @@ export function GameClient() {
         </DialogContent>
       </Dialog>
 
+      {/* POPUP: GAME OVER WINNER ANNOUNCEMENT */}
       <Dialog open={Boolean(winner)} onOpenChange={() => undefined}>
-        <DialogContent className="border-emerald-300/30 bg-zinc-950 text-zinc-50 sm:max-w-xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-2xl">
-              <Sparkles className="h-6 w-6 text-amber-300" />
-              {winner?.name} wins
+        <DialogContent className="border-amber-400/20 bg-zinc-950 text-zinc-50 sm:max-w-md shadow-2xl backdrop-blur-2xl text-center">
+          <DialogHeader className="items-center">
+            <div className="h-14 w-14 rounded-full bg-amber-500/10 border border-amber-500/30 grid place-items-center mb-2">
+              <Sparkles className="h-7 w-7 text-amber-300 animate-spin-slow" />
+            </div>
+            <DialogTitle className="text-2xl font-black text-zinc-100">
+              {winner?.name} Wins the Deal!
             </DialogTitle>
-            <DialogDescription className="text-zinc-400">
-              Three complete property sets were finished on an active turn.
+            <DialogDescription className="text-zinc-400 text-xs">
+              Completed 3 full property sets first!
             </DialogDescription>
           </DialogHeader>
+          
           {winner && (
-            <div className="grid gap-2 sm:grid-cols-3">
-              {completeSetColors(winner).slice(0, 3).map((color) => (
-                <div key={color} className="rounded-lg border border-white/10 bg-white/[0.04] p-3">
-                  <span className="mb-2 block h-2 rounded-full" style={{ backgroundColor: propertyColorStyle(color) }} />
-                  <p className="text-sm font-bold">{colorName(color)}</p>
-                  <p className="font-mono text-xs text-zinc-400">Rent ${rentForColor(winner, color)}M</p>
-                </div>
-              ))}
+            <div className="my-4 flex flex-col gap-2 items-center">
+              <p className="text-xs uppercase tracking-wider text-zinc-500 font-bold">Winning Sets</p>
+              <div className="flex gap-2.5 overflow-x-auto justify-center py-2">
+                {completeSetColors(winner).slice(0, 3).map((color) => (
+                  <div key={color} className="rounded-xl border border-white/5 bg-zinc-900/40 p-2.5 min-w-24 text-center">
+                    <span className="mb-2 block h-1.5 rounded-full" style={{ backgroundColor: propertyColorStyle(color) }} />
+                    <p className="text-xs font-black text-zinc-200">{colorName(color)}</p>
+                    <p className="font-mono text-[10px] text-zinc-400 mt-1">Rent ${rentForColor(winner, color)}M</p>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
-          <div className="flex flex-wrap gap-2">
-            <Button onClick={() => startNewGame()}>
-              <RefreshCw className="h-4 w-4" />
-              Rematch
+          
+          <div className="flex gap-2 mt-4 justify-center w-full">
+            <Button onClick={() => startNewGame()} className="cursor-pointer font-bold bg-emerald-600 hover:bg-emerald-500 text-white flex-1 h-10">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Rematch Play
             </Button>
-            <Link href="/" className={buttonVariants({ variant: "secondary" })}>
-              Back to menu
+            <Link href="/" className={cn(buttonVariants({ variant: "secondary" }), "flex-1 h-10 font-bold cursor-pointer border border-white/5")}>
+              Back to Menu
             </Link>
           </div>
         </DialogContent>
       </Dialog>
 
-      <div className="fixed bottom-3 right-3 hidden rounded-full border border-white/10 bg-black/45 px-3 py-2 text-xs text-zinc-400 backdrop-blur sm:block">
-        {hydrated ? "Saved locally" : "Loading"}
+      <div className="fixed bottom-3 right-3 hidden rounded-full border border-white/5 bg-zinc-950/80 px-3 py-1.5 text-[10px] text-zinc-500 backdrop-blur-xl sm:block font-mono">
+        {hydrated ? "● local storage sync active" : "○ sync loading"}
       </div>
     </main>
   );
