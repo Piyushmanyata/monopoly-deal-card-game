@@ -914,9 +914,9 @@ export function GameClient() {
                         </div>
                       </div>
                       
-                      <div className="grid gap-1.5 mt-3 pt-3 border-t border-white/5">
+                      <div className="grid gap-1.5 mt-3 pt-3 border-t border-white/5 overflow-y-auto pr-1 max-h-[160px] sm:max-h-[220px] scrollbar-thin">
                         {selectedMoves.map((move, index) => (
-                          <Button key={`${move.type}-${index}`} size="sm" className="w-full text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer h-9" onClick={() => commitMove(move)}>
+                          <Button key={`${move.type}-${index}`} size="sm" className="w-full text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer h-9 shrink-0" onClick={() => commitMove(move)}>
                             {moveLabel(state, move)}
                           </Button>
                         ))}
