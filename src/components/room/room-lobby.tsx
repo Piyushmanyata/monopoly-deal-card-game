@@ -144,8 +144,10 @@ export function RoomLobby({
     }
     setLoadingAction("start-game");
     const res = await startRoomGameAction(roomId);
-    if (!res.ok && res.message) {
+    if (!res.ok) {
       alert(res.message);
+    } else {
+      onGameStart(res.view.id);
     }
     setLoadingAction(null);
   };
