@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { playSfx } from "@/lib/sound/sfx";
 
 const AVATARS = ["😎", "🦊", "🦁", "🐼", "🦖", "🤖", "🧙‍♂️", "👩‍🚀", "🐱", "🐶"];
 
@@ -32,7 +33,15 @@ export default function Home() {
   const [botCount, setBotCount] = useState(2);
   const [difficulty, setDifficulty] = useState<"easy" | "normal" | "hard">("normal");
 
+  const playLobbySfx = (name: "draw" | "place" | "money" | "steal" | "no" | "turn" | "win") => {
+    if (typeof window !== "undefined") {
+      const muted = window.localStorage.getItem("deal.muted") === "true";
+      playSfx(name, muted);
+    }
+  };
+
   const handleStartGame = () => {
+    playLobbySfx("turn");
     const query = new URLSearchParams({
       name: name.trim() || "Player",
       avatar: selectedAvatar,
@@ -100,7 +109,10 @@ export default function Home() {
                       <button
                         key={diff}
                         type="button"
-                        onClick={() => setDifficulty(diff)}
+                        onClick={() => {
+                          setDifficulty(diff);
+                          playLobbySfx("place");
+                        }}
                         className={`text-xs font-bold capitalize rounded-md transition ${
                           difficulty === diff
                             ? "bg-emerald-600 text-white shadow"
@@ -124,7 +136,10 @@ export default function Home() {
                     <button
                       key={emoji}
                       type="button"
-                      onClick={() => setSelectedAvatar(emoji)}
+                      onClick={() => {
+                        setSelectedAvatar(emoji);
+                        playLobbySfx("place");
+                      }}
                       className={`text-2xl p-1.5 rounded-md transition-all duration-150 hover:scale-110 ${
                         selectedAvatar === emoji
                           ? "bg-emerald-500/20 border border-emerald-400 scale-105 shadow-[0_0_12px_rgba(52,211,153,0.3)]"
@@ -152,7 +167,10 @@ export default function Home() {
                     <button
                       key={count}
                       type="button"
-                      onClick={() => setBotCount(count)}
+                      onClick={() => {
+                        setBotCount(count);
+                        playLobbySfx("place");
+                      }}
                       className={`py-2 text-xs font-bold rounded capitalize transition ${
                         botCount === count
                           ? "bg-emerald-600 text-zinc-50 shadow"

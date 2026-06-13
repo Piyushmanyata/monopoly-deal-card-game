@@ -18,9 +18,9 @@ const COLOR_STYLES: Record<PropertyColor, string> = {
   utility: "#9aa4b2",
 };
 
-function cardIcon(card: Card, size: "sm" | "md" | "lg") {
+function cardIcon(card: Card, size: "xs" | "sm" | "md" | "lg") {
   const iconClass = cn(
-    size === "sm" ? "h-3 w-3" : size === "md" ? "h-3.5 w-3.5" : "h-4.5 w-4.5"
+    size === "xs" ? "h-2 w-2" : size === "sm" ? "h-3 w-3" : size === "md" ? "h-3.5 w-3.5" : "h-4.5 w-4.5"
   );
   if (card.kind === "money") {
     return <Banknote className={iconClass} />;
@@ -73,7 +73,7 @@ type CardViewProps = {
   card?: Card;
   selected?: boolean;
   disabled?: boolean;
-  size?: "sm" | "md" | "lg";
+  size?: "xs" | "sm" | "md" | "lg";
   faceDown?: boolean;
   onClick?: () => void;
   className?: string;
@@ -88,31 +88,35 @@ export function CardView({ card, selected, disabled, size = "lg", faceDown, onCl
     : {
         y: -6,
         scale: 1.03,
-        rotate: size === "sm" ? 0 : -1,
+        rotate: size === "sm" || size === "xs" ? 0 : -1,
         zIndex: 15,
         boxShadow: `0 15px 25px -5px rgba(0,0,0,0.6), 0 0 16px 2px ${primaryColor}44`,
       };
 
   // Dimensional styles mapping
   const sizeClasses = {
-    sm: "h-24 w-17 rounded-md text-[9px] shadow-md",
-    md: "h-32 w-23 rounded-lg text-[10px] shadow-lg",
-    lg: "h-44 w-32 sm:h-48 sm:w-34 rounded-xl text-[12px] shadow-xl",
+    xs: "h-12 w-[36px] rounded-xs text-[6px] shadow-xs",
+    sm: "h-24 w-[68px] rounded-md text-[9px] shadow-md",
+    md: "h-32 w-[92px] rounded-lg text-[10px] shadow-lg",
+    lg: "h-44 w-[128px] sm:h-48 sm:w-[136px] rounded-xl text-[12px] shadow-xl",
   };
 
   const headerHeights = {
+    xs: "h-2",
     sm: "h-3.5",
     md: "h-5",
     lg: "h-6.5",
   };
 
   const iconContainers = {
+    xs: "h-3 w-3 rounded text-amber-300",
     sm: "h-4.5 w-4.5 rounded text-amber-300",
     md: "h-5.5 w-5.5 rounded-md text-amber-300",
     lg: "h-6.5 w-6.5 rounded-md text-amber-300",
   };
 
   const paddings = {
+    xs: "p-0.5",
     sm: "p-1.5",
     md: "p-2",
     lg: "p-2.5",
@@ -141,17 +145,17 @@ export function CardView({ card, selected, disabled, size = "lg", faceDown, onCl
       {faceDown || !card ? (
         <div className={cn(
           "flex h-full w-full flex-col items-center justify-center text-emerald-100 text-center relative overflow-hidden bg-[radial-gradient(circle_at_50%_30%,rgba(16,185,129,0.2),transparent_60%),linear-gradient(135deg,#0a2f1d,#04110b)] border-2 border-emerald-950/50",
-          size === "sm" ? "p-1 rounded-sm border" : "p-2 rounded-lg border-4"
+          size === "xs" ? "p-0 rounded-2xs border" : size === "sm" ? "p-1 rounded-sm border" : "p-2 rounded-lg border-4"
         )}>
-          <div className={cn("absolute inset-0.5 border border-emerald-500/10 pointer-events-none", size === "sm" ? "rounded-xs" : "rounded-[4px]")} />
+          <div className={cn("absolute inset-0.5 border border-emerald-500/10 pointer-events-none", size === "xs" || size === "sm" ? "rounded-2xs" : "rounded-[4px]")} />
           
           <div className={cn(
             "grid place-items-center rounded-full border border-emerald-400/30 bg-zinc-950/80 font-black text-emerald-300 shadow-2xl tracking-widest relative z-10",
-            size === "sm" ? "h-6 w-6 text-[9px]" : size === "md" ? "h-8 w-8 text-xs" : "h-10 w-10 text-base"
+            size === "xs" ? "h-4 w-4 text-[7px]" : size === "sm" ? "h-6 w-6 text-[9px]" : size === "md" ? "h-8 w-8 text-xs" : "h-10 w-10 text-base"
           )}>
             D
           </div>
-          {size !== "sm" && (
+          {size !== "xs" && size !== "sm" && (
             <span className={cn("font-black uppercase tracking-[0.25em] text-emerald-400/60 relative z-10", size === "md" ? "text-[6px]" : "text-[8px]")}>
               DEAL
             </span>
@@ -160,8 +164,8 @@ export function CardView({ card, selected, disabled, size = "lg", faceDown, onCl
       ) : (
         <>
           {/* Inner embossed borders */}
-          <div className={cn("absolute inset-0.5 pointer-events-none border border-zinc-950/10", size === "sm" ? "rounded-[4px]" : "rounded-[6px]")} />
-          {size !== "sm" && <div className="absolute inset-1 rounded-[5px] border border-white/50 pointer-events-none" />}
+          <div className={cn("absolute inset-0.5 pointer-events-none border border-zinc-950/10", size === "xs" ? "rounded-2xs" : size === "sm" ? "rounded-[4px]" : "rounded-[6px]")} />
+          {size !== "xs" && size !== "sm" && <div className="absolute inset-1 rounded-[5px] border border-white/50 pointer-events-none" />}
           <div className="absolute inset-0 opacity-10 [background-image:radial-gradient(rgba(0,0,0,0.06)_1px,transparent_1px)] [background-size:5px_5px] pointer-events-none" />
           
           {/* Card Category Color Band */}
@@ -177,40 +181,53 @@ export function CardView({ card, selected, disabled, size = "lg", faceDown, onCl
             }}
           />
           
-          <div className={cn("relative flex flex-col justify-between", size === "sm" ? "h-[calc(100%-0.875rem)]" : size === "md" ? "h-[calc(100%-1.25rem)]" : "h-[calc(100%-1.625rem)]", paddings[size])}>
-            <div className="flex items-start justify-between gap-0.5">
-              <div className="min-w-0">
-                {size !== "sm" && (
-                  <p className={cn("font-extrabold uppercase leading-none tracking-[0.1em] text-zinc-500", size === "md" ? "text-[6px]" : "text-[7.5px]")}>
-                    {labelForKind(card)}
-                  </p>
-                )}
-                <p className={cn(
-                  "font-black leading-tight tracking-tight text-zinc-900",
-                  size === "sm" ? "text-[8px] line-clamp-2 mt-0.5" : size === "md" ? "text-[10px] line-clamp-2 mt-0.5" : "text-[11.5px] sm:text-[12.5px] line-clamp-3 mt-1"
-                )}>
-                  {card.name}
-                </p>
-              </div>
-              <div className={cn("grid shrink-0 place-items-center bg-zinc-950 shadow-md border border-white/5", iconContainers[size])}>
-                {cardIcon(card, size)}
-              </div>
-            </div>
-            
-            <div className="flex items-end justify-between mt-0.5">
-              <div className={cn(
-                "rounded bg-zinc-950 font-mono font-black text-amber-300 shadow border border-white/5 leading-none",
-                size === "sm" ? "px-1 py-0.5 text-[8px]" : size === "md" ? "px-1.5 py-0.5 text-[9px]" : "px-2 py-0.5 text-[10px]"
-              )}>
-                ${card.value}M
-              </div>
-              
-              {size === "lg" && (card.kind === "property" || card.kind === "wild") && (
-                <div className="text-right text-[7.5px] font-extrabold uppercase leading-none text-zinc-400">
-                  {assignableColors(card).length} color{assignableColors(card).length === 1 ? "" : "s"}
+          <div className={cn("relative flex flex-col justify-between w-full", size === "xs" ? "h-[calc(100%-0.5rem)]" : size === "sm" ? "h-[calc(100%-0.875rem)]" : size === "md" ? "h-[calc(100%-1.25rem)]" : "h-[calc(100%-1.625rem)]", paddings[size])}>
+            {size === "xs" ? (
+              <div className="flex flex-col items-center justify-between h-full w-full py-0.5">
+                <div className="grid place-items-center bg-zinc-950 shadow-xs border border-white/5 h-4 w-4 rounded text-amber-300 shrink-0">
+                  {cardIcon(card, "xs")}
                 </div>
-              )}
-            </div>
+                <div className="rounded bg-zinc-950 font-mono font-black text-amber-300 text-[6px] px-0.5 leading-none mt-0.5">
+                  ${card.value}M
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="flex items-start justify-between gap-0.5">
+                  <div className="min-w-0">
+                    {size !== "sm" && (
+                      <p className={cn("font-extrabold uppercase leading-none tracking-[0.1em] text-zinc-500", size === "md" ? "text-[6px]" : "text-[7.5px]")}>
+                        {labelForKind(card)}
+                      </p>
+                    )}
+                    <p className={cn(
+                      "font-black leading-tight tracking-tight text-zinc-900",
+                      size === "sm" ? "text-[8px] line-clamp-2 mt-0.5" : size === "md" ? "text-[10px] line-clamp-2 mt-0.5" : "text-[11.5px] sm:text-[12.5px] line-clamp-3 mt-1"
+                    )}>
+                      {card.name}
+                    </p>
+                  </div>
+                  <div className={cn("grid shrink-0 place-items-center bg-zinc-950 shadow-md border border-white/5", iconContainers[size])}>
+                    {cardIcon(card, size)}
+                  </div>
+                </div>
+                
+                <div className="flex items-end justify-between mt-0.5">
+                  <div className={cn(
+                    "rounded bg-zinc-950 font-mono font-black text-amber-300 shadow border border-white/5 leading-none",
+                    size === "sm" ? "px-1 py-0.5 text-[8px]" : size === "md" ? "px-1.5 py-0.5 text-[9px]" : "px-2 py-0.5 text-[10px]"
+                  )}>
+                    ${card.value}M
+                  </div>
+                  
+                  {size === "lg" && (card.kind === "property" || card.kind === "wild") && (
+                    <div className="text-right text-[7.5px] font-extrabold uppercase leading-none text-zinc-400">
+                      {assignableColors(card).length} color{assignableColors(card).length === 1 ? "" : "s"}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </>
       )}
