@@ -321,13 +321,13 @@ export function RoomGameClient({
     }
   }, [roomId, playerId, state.log.length, playEvents]);
 
-  // Subscribe to updates on the games table
+  // Subscribe to updates on the moves table (publicly visible with SELECT policy)
   useEffect(() => {
     const gameChannel = supabase
-      .channel(`games:${roomId}`)
+      .channel(`moves:${state.id}`)
       .on(
         "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "games", filter: `room_id=eq.${roomId}` },
+        { event: "INSERT", schema: "public", table: "moves", filter: `game_id=eq.${state.id}` },
         () => {
           refetchState();
         }
@@ -337,7 +337,7 @@ export function RoomGameClient({
     return () => {
       supabase.removeChannel(gameChannel);
     };
-  }, [roomId, supabase, refetchState]);
+  }, [state.id, supabase, refetchState]);
 
   useEffect(() => {
     const savedMuted = window.localStorage.getItem("deal.muted") === "true";
