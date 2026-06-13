@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { RoomLobby } from "./room-lobby";
 import { RoomGameClient } from "./room-game-client";
 import { type RedactedState } from "@/lib/engine";
@@ -48,13 +48,13 @@ export function RoomClientWrapper({
   const [gameView, setGameView] = useState<RedactedState | null>(initialGameView);
   const [status, setStatus] = useState<string>(roomInfo.status);
 
-  const handleGameStart = async () => {
+  const handleGameStart = useCallback(async () => {
     const view = await getMyView(roomId, playerId);
     if (view) {
       setGameView(view);
       setStatus("in_game");
     }
-  };
+  }, [roomId, playerId]);
 
   if (status === "lobby") {
     return (

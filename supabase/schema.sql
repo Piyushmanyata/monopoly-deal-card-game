@@ -100,3 +100,8 @@ create index if not exists rooms_code_idx on public.rooms(code);
 create index if not exists players_room_idx on public.players(room_id);
 create index if not exists games_room_idx on public.games(room_id);
 create index if not exists moves_game_version_idx on public.moves(game_id, version);
+
+-- Enable Realtime for rooms, players, and moves
+alter publication supabase_realtime add table public.rooms;
+alter publication supabase_realtime add table public.players;
+alter publication supabase_realtime add table public.moves;

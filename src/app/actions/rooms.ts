@@ -225,7 +225,9 @@ export async function startRoomGame(roomId: string): Promise<{ ok: true; view: R
   }
 
   await supabase.from("rooms").update({ status: "in_game", updated_at: new Date().toISOString() }).eq("id", roomId);
-  return { ok: true, view: redactStateFor(state, state.players[0].id) };
+  const view = redactStateFor(state, state.players[0].id);
+  view.id = game.id;
+  return { ok: true, view };
 }
 
 export async function getMyView(roomId: string, playerId: string): Promise<RedactedState | undefined> {
@@ -245,7 +247,9 @@ export async function getMyView(roomId: string, playerId: string): Promise<Redac
   }
 
   const game = data as GameRow;
-  return redactStateFor(game.state, playerId);
+  const view = redactStateFor(game.state, playerId);
+  view.id = game.id;
+  return view;
 }
 
 export async function submitMoveAction(
@@ -308,7 +312,9 @@ export async function submitMoveAction(
     events: result.events,
   });
 
-  return { ok: true, view: redactStateFor(result.state, playerId) };
+  const view = redactStateFor(result.state, playerId);
+  view.id = game.id;
+  return { ok: true, view };
 }
 
 export async function addBotAction(roomId: string): Promise<{ ok: boolean; message?: string }> {

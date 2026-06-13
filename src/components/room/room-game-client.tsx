@@ -17,7 +17,7 @@ import {
   VolumeX,
 } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { chooseBotMove } from "@/lib/bot";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
@@ -312,14 +312,20 @@ export function RoomGameClient({
     [playEvents, state.version, state.log.length, roomId, playerId],
   );
 
+  const logLengthRef = useRef(initialView.log.length);
+
+  useEffect(() => {
+    logLengthRef.current = state.log.length;
+  }, [state.log.length]);
+
   const refetchState = useCallback(async () => {
     const fresh = await getMyView(roomId, playerId);
     if (fresh) {
-      const prevLogLen = state.log.length;
+      const prevLogLen = logLengthRef.current;
       setState(fresh);
       playEvents(fresh.log.slice(prevLogLen));
     }
-  }, [roomId, playerId, state.log.length, playEvents]);
+  }, [roomId, playerId, playEvents]);
 
   // Subscribe to updates on the moves table (publicly visible with SELECT policy)
   useEffect(() => {
