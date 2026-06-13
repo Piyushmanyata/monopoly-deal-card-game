@@ -176,14 +176,14 @@ function SetColumn({ group, small }: { group: ReturnType<typeof groupedPropertie
       className={cn(
         "rounded-xl border p-2 transition-all duration-300 relative bg-zinc-950/70 flex flex-col justify-between",
         group.complete
-          ? "border-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.12)] bg-gradient-to-b from-zinc-950/70 to-amber-950/10"
+          ? "border-amber-400 bg-gradient-to-b from-zinc-950/70 to-amber-950/10 animate-gold-pulse"
           : "border-white/5 hover:border-white/10",
         small ? "min-w-[5.5rem] p-1.5" : "min-w-[7rem] p-2.5"
       )}
     >
       {group.complete && (
         <span className={cn(
-          "absolute grid place-items-center rounded-full bg-amber-400 text-amber-950 font-black shadow-lg z-10",
+          "absolute grid place-items-center rounded-full bg-amber-400 text-amber-950 font-black shadow-lg z-10 animate-bounce",
           small ? "-top-1.5 -right-1.5 h-4 w-4 text-[8px]" : "-top-2 -right-2 h-5 w-5 text-[10px]"
         )}>
           ★
@@ -223,7 +223,7 @@ function PlayerPanel({ player, active, self }: { player: PlayerState; active: bo
     <motion.section
       layout
       className={cn(
-        "rounded-xl border p-3.5 shadow-xl transition-all duration-300 relative",
+        "rounded-xl border p-2.5 shadow-xl transition-all duration-300 relative",
         active
           ? "border-emerald-400/80 bg-zinc-900/40 shadow-emerald-500/5"
           : "border-white/5 bg-zinc-950/20",
@@ -234,7 +234,7 @@ function PlayerPanel({ player, active, self }: { player: PlayerState; active: bo
         <div className="flex items-center gap-3">
           <div className={cn(
             "grid h-10 w-10 place-items-center rounded-full border bg-zinc-900 text-base font-black shadow-lg font-mono",
-            active ? "border-emerald-400 text-emerald-300" : "border-white/10 text-zinc-300"
+            active ? "border-emerald-400 text-emerald-300 animate-pulse" : "border-white/10 text-zinc-300"
           )}>
             {player.avatar}
           </div>
@@ -260,7 +260,7 @@ function PlayerPanel({ player, active, self }: { player: PlayerState; active: bo
       </div>
 
       {/* Tableau cards rendering (wrapping layout, no horizontal scrollbars!) */}
-      <div className="mt-3 flex flex-wrap gap-2 justify-start items-stretch">
+      <div className="mt-2.5 flex flex-wrap gap-2 justify-start items-stretch">
         {/* Bank card views */}
         {player.bank.length > 0 && (
           <div className={cn(
@@ -296,9 +296,9 @@ function PlayerPanel({ player, active, self }: { player: PlayerState; active: bo
 function RulesSheet() {
   return (
     <Sheet>
-      <SheetTrigger render={<Button variant="outline" size="sm" className="cursor-pointer font-semibold" />}>
+      <SheetTrigger render={<Button variant="outline" size="sm" className="cursor-pointer font-semibold h-8 border-white/5" />}>
         <Info className="h-4 w-4" />
-        Rules Reference
+        Rules
       </SheetTrigger>
       <SheetContent side="right" className="w-full overflow-y-auto border-white/10 bg-zinc-950 text-zinc-50 sm:max-w-xl">
         <SheetHeader>
@@ -348,7 +348,8 @@ export function GameClient() {
   const [selectedPaymentIds, setSelectedPaymentIds] = useState<string[]>([]);
   const [message, setMessage] = useState<string>();
   const [muted, setMuted] = useState(false);
-  const [activeBotMessage, setActiveBotMessage] = useState<string>("");
+  const [activeBotMessage, setActiveBotMessage] = useState<string>("Click 'Draw Cards' to begin the match!");
+  const [isLogOpen, setIsLogOpen] = useState(false);
 
   const human = state.players.find((player) => player.id === "human") ?? state.players[0];
   const current = state.players[state.currentPlayerIndex];
@@ -394,7 +395,7 @@ export function GameClient() {
       setSelectedCardId(undefined);
       setSelectedPaymentIds([]);
       setMessage(undefined);
-      setActiveBotMessage("");
+      setActiveBotMessage("Dealt fresh cards. Ready!");
       if (typeof window !== "undefined") {
         window.localStorage.setItem(STORAGE_KEY, serialize(nextState));
       }
@@ -477,7 +478,10 @@ export function GameClient() {
 
     const actor = state.players.find((player) => player.id === actingPlayerId);
     if (!actor?.isBot) {
-      setActiveBotMessage("");
+      // Clear message on player turn after brief status update
+      if (current.id === "human" && !state.pendingInteraction) {
+        setActiveBotMessage("🟢 Your turn to play cards!");
+      }
       return;
     }
 
@@ -487,7 +491,7 @@ export function GameClient() {
       setState((previous) => {
         const move = chooseBotMove(previous, actor.id, difficulty);
         if (!move) {
-          setActiveBotMessage(`🤖 ${actor.name} ends action.`);
+          setActiveBotMessage(`🤖 ${actor.name} passes.`);
           return previous;
         }
 
@@ -502,7 +506,7 @@ export function GameClient() {
           return previous;
         }
       });
-    }, state.pendingInteraction ? 1100 : 1600); // readable step delays
+    }, state.pendingInteraction ? 1200 : 1800); // stable step delays
 
     return () => window.clearTimeout(timer);
   }, [current.id, difficulty, hydrated, playEvents, state, winner]);
@@ -543,17 +547,17 @@ export function GameClient() {
   };
 
   return (
-    <main className="min-h-screen overflow-x-hidden bg-[radial-gradient(ellipse_at_50%_0%,rgba(16,185,129,0.22)_0%,rgba(6,25,18,0.95)_70%),linear-gradient(to_bottom,#020704,#090e0c_50%,#11090f)] text-zinc-50 flex flex-col justify-between">
-      <div className="mx-auto flex w-full max-w-[1700px] flex-col gap-4 p-3 sm:p-5 flex-1">
+    <main className="h-screen max-h-screen overflow-hidden bg-[radial-gradient(ellipse_at_50%_0%,rgba(16,185,129,0.22)_0%,rgba(6,25,18,0.95)_70%),linear-gradient(to_bottom,#020704,#090e0c_50%,#11090f)] text-zinc-50 flex flex-col justify-between p-2.5 sm:p-3 select-none">
+      <div className="flex flex-col gap-2.5 h-full justify-between">
         
         {/* POLISHED TABLEHEADER */}
-        <header className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/5 bg-black/40 px-4 py-3 backdrop-blur-xl shadow-lg">
+        <header className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-white/5 bg-black/45 px-4 py-2 backdrop-blur-xl shadow-lg shrink-0">
           <div className="flex items-center gap-3">
             <Crown className="h-5 w-5 text-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-lg font-black tracking-tight text-zinc-100">DEAL!</h1>
-                <Badge variant="outline" className="border-emerald-500/30 text-emerald-300 font-mono text-[10px] h-5">
+                <h1 className="text-base font-black tracking-tight text-zinc-100">DEAL!</h1>
+                <Badge variant="outline" className="border-emerald-500/30 text-emerald-300 font-mono text-[9px] h-4.5 px-1 py-0 leading-none">
                   Round {state.turnNumber}
                 </Badge>
               </div>
@@ -565,17 +569,22 @@ export function GameClient() {
           
           {/* TURN PLAYS AND CONTROLS */}
           <div className="flex flex-wrap items-center gap-2.5">
-            <Badge className="bg-zinc-950 text-zinc-200 border border-white/5 h-8 px-2.5 text-xs font-semibold gap-1">
+            <Badge className="bg-zinc-950 text-zinc-200 border border-white/5 h-8 px-2.5 text-[11px] font-semibold gap-1">
               Plays Left:
-              <span className="flex gap-0.5 ml-1 text-emerald-400">
+              <span className="flex gap-0.5 ml-1 text-emerald-400 font-bold">
                 {"●".repeat(state.playsRemaining)}
-                <span className="text-zinc-700">{"○".repeat(Math.max(0, 3 - state.playsRemaining))}</span>
+                <span className="text-zinc-700 font-normal">{"○".repeat(Math.max(0, 3 - state.playsRemaining))}</span>
               </span>
             </Badge>
             
             <Button variant="outline" size="sm" onClick={() => setMuted((v) => !v)} className="cursor-pointer h-8 border-white/5 text-zinc-300">
               {muted ? <VolumeX className="h-4 w-4 text-rose-400" /> : <Volume2 className="h-4 w-4 text-emerald-400" />}
               <span className="hidden sm:inline">Sound</span>
+            </Button>
+
+            <Button variant="outline" size="sm" onClick={() => setIsLogOpen(true)} className="cursor-pointer h-8 border-white/5 text-zinc-300 gap-1.5 font-bold">
+              <History className="h-4 w-4 text-emerald-400" />
+              Log ({state.log.length})
             </Button>
             
             <RulesSheet />
@@ -595,20 +604,20 @@ export function GameClient() {
         {/* FEEDBACK STATUS ALERTS */}
         {message && (
           <motion.div
-            initial={{ opacity: 0, y: -10 }}
+            initial={{ opacity: 0, y: -5 }}
             animate={{ opacity: 1, y: 0 }}
-            className="rounded-lg border border-rose-500/20 bg-rose-950/20 px-4 py-2 text-xs text-rose-300 flex items-center gap-2"
+            className="rounded-lg border border-rose-500/20 bg-rose-950/20 px-4 py-2 text-xs text-rose-300 flex items-center gap-2 shrink-0"
           >
             <AlertTriangle className="h-4 w-4 text-rose-400 shrink-0" />
             {message}
           </motion.div>
         )}
 
-        {/* GAMEBOARD GRID LAYOUT */}
-        <section className="grid flex-1 grid-rows-[auto_1fr_auto] gap-4 mt-2">
+        {/* GAMEBOARD CONTAINER (strictly locked viewport layout) */}
+        <section className="flex-1 min-h-0 grid grid-rows-[auto_1fr_auto] gap-2.5">
           
-          {/* TOP ROW: OPPONENTS (BOTS) */}
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {/* ROW 1: OPPONENTS (BOTS) */}
+          <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4 shrink-0">
             {state.players
               .filter((player) => player.id !== human.id)
               .map((player) => (
@@ -616,15 +625,15 @@ export function GameClient() {
               ))}
           </div>
 
-          {/* MIDDLE ROW: CENTER felt table + log activity */}
-          <div className="grid min-h-[350px] gap-4 lg:grid-cols-[1fr_320px]">
-            {/* Casino felt table */}
-            <section className="relative overflow-hidden rounded-2xl border border-emerald-500/10 bg-[radial-gradient(circle_at_50%_50%,rgba(16,185,129,0.14),rgba(5,20,15,0.88)_60%,rgba(3,8,6,0.96))] p-4 shadow-2xl flex items-center justify-center">
+          {/* ROW 2: Felt table center */}
+          <div className="flex-1 min-h-[160px] relative flex flex-col">
+            {/* Casino felt table with mahogany chassis bezel */}
+            <section className="relative overflow-hidden rounded-2xl border-[10px] border-zinc-950 bg-[radial-gradient(circle_at_50%_50%,rgba(16,185,129,0.18),rgba(5,20,15,0.92)_70%,rgba(3,8,6,0.98))] p-4 shadow-[inset_0_4px_25px_rgba(0,0,0,0.85),0_10px_35px_rgba(0,0,0,0.5)] flex-1 flex items-center justify-center">
               <div className="absolute inset-0 opacity-10 [background-image:radial-gradient(rgba(255,255,255,0.08)_1px,transparent_1px)] [background-size:20px_20px] pointer-events-none" />
               
-              {/* Bot thinking status bubble */}
+              {/* Bot thinking/acting status marquee */}
               {activeBotMessage && (
-                <div className="absolute top-4 left-1/2 -translate-x-1/2 rounded-full border border-emerald-400/20 bg-emerald-950/70 px-4 py-1.5 text-xs text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.2)] animate-pulse flex items-center gap-1.5 z-20">
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 rounded-full border border-emerald-400/20 bg-emerald-950/80 px-4 py-1.5 text-xs text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.2)] animate-pulse flex items-center gap-1.5 z-20 font-semibold tracking-wide">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-ping" />
                   {activeBotMessage}
                 </div>
@@ -736,43 +745,16 @@ export function GameClient() {
                 )}
               </AnimatePresence>
             </section>
-
-            {/* ACTION LOG FEED */}
-            <aside className="flex h-[250px] lg:h-full min-h-0 flex-col rounded-2xl border border-white/5 bg-zinc-950/50 p-4 shadow-xl">
-              <div className="mb-3.5 flex items-center justify-between border-b border-white/5 pb-2">
-                <div className="flex items-center gap-1.5 text-xs font-black uppercase text-zinc-300 tracking-wider">
-                  <History className="h-4 w-4 text-emerald-400" />
-                  Live Action Log
-                </div>
-                <Badge variant="secondary" className="font-mono text-[9px] bg-zinc-900 border-white/5">
-                  v{state.version}
-                </Badge>
-              </div>
-              <ScrollArea className="min-h-0 flex-1 pr-1.5 scrollbar-thin">
-                <div className="space-y-2">
-                  {[...state.log].reverse().map((event) => (
-                    <div key={event.id} className="rounded-lg border border-white/5 bg-zinc-900/30 px-3 py-2 text-[11px] text-zinc-300 leading-relaxed font-medium">
-                      {event.message}
-                    </div>
-                  ))}
-                  {state.log.length === 0 && (
-                    <p className="py-12 text-center text-xs text-zinc-600 font-medium">
-                      No turns logged yet. Deal to start!
-                    </p>
-                  )}
-                </div>
-              </ScrollArea>
-            </aside>
           </div>
 
-          {/* BOTTOM ROW: USER HAND */}
-          <section className="rounded-2xl border border-white/5 bg-black/20 p-4 shadow-2xl mt-2 backdrop-blur-xl">
+          {/* ROW 3: USER HAND */}
+          <section className="rounded-2xl border border-white/5 bg-black/20 p-3.5 shadow-2xl backdrop-blur-xl shrink-0">
             <PlayerPanel player={human} active={current.id === human.id} self />
-            <Separator className="my-3.5 bg-white/5" />
+            <Separator className="my-3 bg-white/5" />
             
             {/* Hand view */}
-            <div className="overflow-x-auto pb-2 scrollbar-thin">
-              <div className="flex min-h-48 items-end gap-2 px-1 justify-center">
+            <div className="overflow-x-auto pb-1.5 scrollbar-thin">
+              <div className="flex min-h-[13rem] items-end gap-2 px-1 justify-center">
                 <AnimatePresence initial={false}>
                   {human.hand.map((card, index) => {
                     const offset = index - (human.hand.length - 1) / 2;
@@ -780,10 +762,10 @@ export function GameClient() {
                     return (
                       <motion.div
                         key={card.id}
-                        initial={{ opacity: 0, y: 30, rotate: 5 }}
+                        initial={{ opacity: 0, y: 45, rotate: 5 }}
                         animate={{ opacity: 1, y: 0, rotate: rot }}
-                        exit={{ opacity: 0, y: 30 }}
-                        transition={{ duration: 0.2 }}
+                        exit={{ opacity: 0, y: 45 }}
+                        transition={{ type: "spring", stiffness: 280, damping: 22 }}
                       >
                         <CardView
                           card={card}
@@ -829,7 +811,7 @@ export function GameClient() {
                           ? "Vault currency. Bank it to protect property sets from rent collections."
                           : selectedCard.kind === "property"
                           ? "Place on board. Form completed color groups to win."
-                          : "Launches dynamic events. Charge rent, block attacks, or steal properties."}
+                          : "Launches rent requests, blocks opponent attacks, or sweeps property sets."}
                       </p>
                     </div>
                     
@@ -993,6 +975,32 @@ export function GameClient() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* DETACHED COLLAPSIBLE ACTION LOG SHEET */}
+      <Sheet open={isLogOpen} onOpenChange={setIsLogOpen}>
+        <SheetContent side="right" className="w-full sm:max-w-md bg-zinc-950/95 border-white/5 text-zinc-50 flex flex-col h-full shadow-2xl backdrop-blur-2xl">
+          <SheetHeader className="border-b border-white/5 pb-3.5 flex flex-row items-center justify-between">
+            <SheetTitle className="flex items-center gap-2 text-base font-black uppercase tracking-wider text-zinc-100">
+              <History className="h-4 w-4 text-emerald-400" />
+              Live Action Log
+            </SheetTitle>
+          </SheetHeader>
+          <ScrollArea className="flex-1 mt-4 pr-1.5">
+            <div className="space-y-2">
+              {[...state.log].reverse().map((event) => (
+                <div key={event.id} className="rounded-lg border border-white/5 bg-zinc-900/30 px-3 py-2 text-[11px] text-zinc-300 leading-relaxed font-medium">
+                  {event.message}
+                </div>
+              ))}
+              {state.log.length === 0 && (
+                <p className="py-12 text-center text-xs text-zinc-600 font-medium">
+                  No turns logged yet. Deal to start!
+                </p>
+              )}
+            </div>
+          </ScrollArea>
+        </SheetContent>
+      </Sheet>
 
       <div className="fixed bottom-3 right-3 hidden rounded-full border border-white/5 bg-zinc-950/80 px-3 py-1.5 text-[10px] text-zinc-500 backdrop-blur-xl sm:block font-mono">
         {hydrated ? "● local storage sync active" : "○ sync loading"}
